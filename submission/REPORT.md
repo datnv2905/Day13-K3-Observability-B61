@@ -12,7 +12,7 @@
 | Họ tên | MSSV | Tác giả trong Git | Vai trò |
 |---|---|---|---|
 | Nguyễn Văn Đạt | 2A202601969 | `Datnv <datbn5602@gmail.com>` | Dashboard, SLO & Alert |
-| Nguyễn Trọng Toàn | 2A202601493 | _chưa có commit_ | _(cần điền)_ |
+| Nguyễn Trọng Toàn | 2A202601493 | `Toanproptit <nguyentrongtoana1byt@gmail.com>` — nhánh `origin/Toan` | Dashboard runtime & evidence ảnh |
 | Hoàng Nguyễn Phong | 2A202601077 | `Hoang Phong <hoangphong210703@gmail.com>` | Logging & PII |
 | Lê Hồng Đức | 2A202601313 | `duclh <duclh005@example.com>` | Dashboard, SLO & Alert |
 | Trần Nguyễn Thế Nhật | 2A202601155 | `Nhat Tran <nhatjames24.2004@gmail.com>` | Tracing & Prompt Version; Incident, Report & Demo |
@@ -456,10 +456,23 @@ Metrics phát hiện *có* sự cố, nhưng không chứng minh được nguyê
 | Lê Hồng Đức | 2A202601313 | `.gitignore`; hoàn thiện phase 1; SLO + alert rules + runbook (`config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md`); merge nhánh nhóm | `611a0d2`, `f9e8018`,<br>`7703466` slo + alert,<br>`7405d0d` merge | **SLO lỏng hơn yêu cầu nghiệp vụ thì vô dụng.** Ngưỡng ban đầu `latency_p95_ms: 3000` cao hơn `latency_threshold_ms=2000` của challenge, nên sự cố thật (p95 = 3095ms) gần như không đốt error budget — SLO không phản ánh nỗi đau người dùng. Đã siết về 2000 và đồng bộ luôn dashboard.<br><br>Alert phải mô tả **triệu chứng**, không mô tả nguyên nhân: `p95 > 2000ms` vẫn đúng dù thủ phạm là RAG, LLM hay prompt; còn `vector_store_timeout > 0` sẽ im lặng khi hệ thống hỏng kiểu khác. Mỗi alert cần `for` và `minimum_samples` để không kêu vì một spike lẻ, và severity phải theo mức đau của người dùng — cost để `warning` vì không ai bị ảnh hưởng trực tiếp. |
 | Nguyễn Văn Đạt | 2A202601969 | Dashboard builder + dashboard contract (`scripts/build_dashboard.py`, `docs/dashboard-spec.md`); validator alert + test SLO (`scripts/validate_alerts.py`, `tests/test_slo_alert_configuration.py`) | `ad1f9bf`,<br>`3bba989` | Biến dashboard thành **contract có validator** giúp phát hiện lệch cấu hình sớm, nhưng validator chỉ đáng tin khi **lấy tên từ một nguồn sự thật duy nhất**. Bài học thật: `validate_alerts.py` ghim `daily_cost_usd` trong khi `config/slo.yaml` dùng `cost_total_usd`, nên validator **fail ngay trên `main`** dù cấu hình đúng — hai file do hai người viết đã trôi khỏi nhau mà không ai biết.<br><br>Ràng buộc quá chặt cũng có hại: `len(alerts) != 3` chặn luôn việc bổ sung alert hợp lệ cho SLI cost, nên đã nới thành cận dưới. Về đo lường: phải đọc **p95/p99 chứ không chỉ trung bình hay p50** — trong sự cố này p50 và p95 lệch nhau nhiều, chỉ nhìn một con số sẽ đánh giá sai mức nghiêm trọng. |
 | Trần Nguyễn Thế Nhật | 2A202601155 | Instrumentation trace theo skill Langfuse (span phân cấp, mask PII, score, correlation_id ↔ trace); prompt v1/v2 + rollback; điều tra Checkpoint 3; test hồi quy | `a0df0f8`,<br>`6cb70bf` Checkpoint 3,<br>`4ab6301` fix validator | **Trace phẳng thì vô dụng khi điều tra.** Ban đầu cả request là một `generation`, chỉ thấy "mất 3.1s" mà không biết bước nào. Sau khi tách `retrieve-context` / `resolve-prompt` / `llm-generate`, sự cố lộ ngay: retrieval 2506ms còn LLM chỉ 155ms — loại trừ được lỗi model chỉ bằng cách nhìn.<br><br>`correlation_id` gắn vào trace metadata là thứ khâu Logs ↔ Traces; thiếu nó thì ba lớp quan sát là ba hòn đảo. Prompt label là **con trỏ**: rollback `production` từ v2 về v1 đổi hành vi ngay mà không sửa code, không deploy lại.<br><br>Hai cái bẫy đã mắc thật: (1) Langfuse cache client theo `public_key`, nên nếu `@observe` chạy trước thì client thiếu `mask` bị dùng lại vĩnh viễn và **PII masking không bao giờ có hiệu lực** — phải khởi tạo lúc startup; (2) lỗi 401 `"Invalid credentials"` **không phân biệt** sai key với sai host — key thật ra thuộc region JP, phải thử từng region mới ra. |
-| Nguyễn Trọng Toàn | 2A202601493 | _(cần điền)_ | **Chưa có commit nào mang tên/email của thành viên này trong lịch sử Git** | _(cần tự viết — không thể suy ra từ Git vì chưa có đóng góp nào được ghi nhận)_ |
+| Nguyễn Trọng Toàn | 2A202601493 | Dashboard runtime đọc trực tiếp `data/logs.jsonl` theo `config/dashboard.yaml` (`app/dashboard.py`, 280 dòng) + test (`tests/test_dashboard_runtime.py`); bổ sung test PII cho passport; hoàn thiện CP1 (`app/middleware.py`, `app/logging_config.py`, `app/pii.py`, `app/main.py`); SLO/alert/runbook; **chụp toàn bộ evidence ảnh CP2** (baseline trace, candidate trace, rollback trace, trace waterfall, dashboard) | `bcf1d44` hoàn thành bài lab<br>⚠️ **trên nhánh `origin/Toan`, chưa merge vào `main`** | Dashboard phải **đọc từ log thật theo contract** chứ không hard-code số liệu, nếu không nó chỉ là ảnh trang trí và không phản ánh hệ thống. Contract `config/dashboard.yaml` là nguồn sự thật chung cho cả code lẫn validator.<br><br>Bài học sắc nhất là về **false positive khi redact PII**: regex bắt passport `[A-Z]\d{7}` suýt nuốt luôn `correlation_id` dạng `req-c0391357`. Đã viết test `test_scrub_passport_without_redacting_correlation_id` để khoá lại — che PII quá tay sẽ phá chính công cụ điều tra, vì mất correlation ID là mất sợi dây nối Logs ↔ Traces. |
 
 
 Kiểm tra lại từng dòng bằng: `git log --author="<tên hoặc email>" --oneline --stat`.
+
+> ⚠️ **Nhánh `origin/Toan` chưa được merge vào `main`.** Commit `bcf1d44` của Nguyễn Trọng
+> Toàn tách ra từ `611a0d2` và đi song song với toàn bộ tiến trình của nhánh `main`, nên
+> phần việc và 5 ảnh evidence trong đó **không xuất hiện trong lịch sử `main`**. Nếu chỉ
+> nộp `main`, người chấm sẽ không thấy đóng góp này. Kiểm chứng bằng:
+>
+> ```bash
+> git log origin/main..origin/Toan --stat
+> ```
+>
+> Nhóm cần quyết trước khi nộp: hoặc merge/cherry-pick phần còn giá trị từ `origin/Toan`
+> vào `main`, hoặc ghi rõ trong bài nộp rằng đóng góp của thành viên này nằm ở nhánh
+> `origin/Toan` cùng repository.
 
 Ghi chú để trả lời phản biện: `HungBil <nguyendonghung70@gmail.com>` là tác giả các commit
 khởi tạo lab (`b95464c`, `f1a02e5`, `7a57bfb`) và commit release `config/challenge.json`
