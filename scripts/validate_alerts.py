@@ -28,7 +28,9 @@ VALID_SEVERITIES = {"info", "warning", "critical"}
 SLI_TO_PANEL = {
     "latency_p95_ms": "latency",
     "error_rate_pct": "errors",
-    "daily_cost_usd": "cost",
+    # Tên SLI phải khớp config/slo.yaml. Trước đây ghi 'daily_cost_usd' nên
+    # validator báo lỗi ngay cả khi config đúng.
+    "cost_total_usd": "cost",
     "quality_score_avg": "quality",
 }
 
@@ -75,8 +77,10 @@ def check(config_dir: Path, docs_dir: Path) -> list[str]:
 
     # 2. Alert rules đã điền chưa.
     alerts = alerts_doc.get("alerts")
-    if not isinstance(alerts, list) or len(alerts) != 3:
-        problems.append("alert_rules.yaml phải có đúng 3 alert")
+    # Yêu cầu của lab là tối thiểu 3 alert. Ghim đúng 3 sẽ chặn nhóm bổ sung
+    # alert cho SLI còn lại (ví dụ cost), nên chỉ kiểm tra cận dưới.
+    if not isinstance(alerts, list) or len(alerts) < 3:
+        problems.append("alert_rules.yaml phải có ít nhất 3 alert")
         return problems
 
     seen_names: set[str] = set()
@@ -145,7 +149,8 @@ def main() -> int:
             print(f"  - {problem}")
         return 1
 
-    print("HỢP LỆ: 3/3 alert rule đã điền, có runbook, và ngưỡng khớp SLO + dashboard.")
+    total = len(load_yaml(args.config_dir / "alert_rules.yaml").get("alerts") or [])
+    print(f"HỢP LỆ: {total} alert rule đã điền, có runbook, và ngưỡng khớp SLO + dashboard.")
     return 0
 
 
