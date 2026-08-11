@@ -458,11 +458,6 @@ Metrics phát hiện *có* sự cố, nhưng không chứng minh được nguyê
 | Trần Nguyễn Thế Nhật | 2A202601155 | Instrumentation trace theo skill Langfuse (span phân cấp, mask PII, score, correlation_id ↔ trace); prompt v1/v2 + rollback; điều tra Checkpoint 3; test hồi quy | `a0df0f8`,<br>`6cb70bf` Checkpoint 3,<br>`4ab6301` fix validator | **Trace phẳng thì vô dụng khi điều tra.** Ban đầu cả request là một `generation`, chỉ thấy "mất 3.1s" mà không biết bước nào. Sau khi tách `retrieve-context` / `resolve-prompt` / `llm-generate`, sự cố lộ ngay: retrieval 2506ms còn LLM chỉ 155ms — loại trừ được lỗi model chỉ bằng cách nhìn.<br><br>`correlation_id` gắn vào trace metadata là thứ khâu Logs ↔ Traces; thiếu nó thì ba lớp quan sát là ba hòn đảo. Prompt label là **con trỏ**: rollback `production` từ v2 về v1 đổi hành vi ngay mà không sửa code, không deploy lại.<br><br>Hai cái bẫy đã mắc thật: (1) Langfuse cache client theo `public_key`, nên nếu `@observe` chạy trước thì client thiếu `mask` bị dùng lại vĩnh viễn và **PII masking không bao giờ có hiệu lực** — phải khởi tạo lúc startup; (2) lỗi 401 `"Invalid credentials"` **không phân biệt** sai key với sai host — key thật ra thuộc region JP, phải thử từng region mới ra. |
 | Nguyễn Trọng Toàn | 2A202601493 | _(cần điền)_ | **Chưa có commit nào mang tên/email của thành viên này trong lịch sử Git** | _(cần tự viết — không thể suy ra từ Git vì chưa có đóng góp nào được ghi nhận)_ |
 
-**Lưu ý cho Nguyễn Trọng Toàn:** rubric B2 (20 điểm) yêu cầu "có commit/PR cụ thể và có
-thể kiểm tra", và phần khai trong báo cáo phải khớp thay đổi trong Git. Hiện `git log`
-không có tác giả nào ứng với thành viên này. Nếu có đóng góp thật thì cần tạo commit
-mang tên/email của mình trước khi nộp; nếu đã đóng góp qua máy người khác thì dùng
-`git commit --amend --author` hoặc thêm trailer `Co-authored-by:` để lịch sử phản ánh đúng.
 
 Kiểm tra lại từng dòng bằng: `git log --author="<tên hoặc email>" --oneline --stat`.
 
