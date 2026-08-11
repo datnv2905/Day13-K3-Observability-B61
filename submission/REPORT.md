@@ -2,7 +2,7 @@
 
 ## 1. Thông tin nhóm
 
-- **Tên nhóm:** _(cần điền)_
+- **Tên nhóm:** B61
 - **Repository URL:** https://github.com/datnv2905/Day13-K3-Observability-B61
 - **Commit SHA cuối:** `4ab6301fa4c2f7a4c57eff27da33bb7ecfe7f52c` — commit chứa toàn bộ bài
   làm. Commit cuối trên `main` có thể mới hơn đúng một commit (chính là commit ghi dòng
