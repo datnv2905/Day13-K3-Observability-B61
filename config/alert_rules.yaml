@@ -1,3 +1,11 @@
+# Alert phải mô tả TRIỆU CHỨNG người dùng cảm nhận, không mô tả nguyên nhân nội bộ.
+#
+# "latency_p95 > 3000ms" là triệu chứng — nó đúng dù thủ phạm là vector store chậm,
+# LLM chậm hay prompt phình to. "vector_store_timeout > 0" là nguyên nhân: nó chỉ bắt
+# được đúng một cách hỏng, và sẽ im lặng khi hệ thống hỏng theo cách khác.
+#
+# Ngưỡng lấy đúng từ config/slo.yaml. Mỗi alert đều có duration để không kêu vì một
+# spike lẻ, và có owner cụ thể để không rơi vào cảnh "ai cũng thấy, không ai xử lý".
 alerts:
   - name: chat_latency_p95_slo_breach
     severity: warning
