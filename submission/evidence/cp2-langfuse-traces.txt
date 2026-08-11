@@ -1,0 +1,42 @@
+# CP2 - Trace THAT tren Langfuse (da fetch ve de audit)
+# Ngay: 2026-08-11T04:14:48Z
+# Host: https://jp.cloud.langfuse.com (region Nhat Ban)
+# Lenh: npx langfuse-cli api traces list / traces get <id>
+
+## Danh sach trace
+Tong so trace lay ve: 10
+  a8172631a09046a86898cd45091fb0f3 | chat-response | session=s10 | user_hash=105a9cef3903 | 4 obs
+  922e771578daf7302bb2fe579af07ad5 | chat-response | session=s09 | user_hash=4d14d5d4f719 | 4 obs
+  502b3354f3a44e36df18d48196ee3d61 | chat-response | session=s08 | user_hash=2f015d970c0b | 4 obs
+  095a9a615e3228fc29b4a6ca32178e73 | chat-response | session=s07 | user_hash=1632c29ecdec | 4 obs
+  cb2504f9170e9d8774475b508e65ee0e | chat-response | session=s06 | user_hash=4c4f62330d76 | 4 obs
+  efb2d6fb12487f59c0db85dcd70d52a9 | chat-response | session=s05 | user_hash=64f6ec689229 | 4 obs
+  29935a12c06ea0a34d6789242e642ac5 | chat-response | session=s04 | user_hash=75af07890985 | 4 obs
+  135c10fb175d2bb2a80d42f10893b60b | chat-response | session=s03 | user_hash=97ce842ec69d | 4 obs
+  2062a036dc571ccdd5d44f79af32aaa3 | chat-response | session=s02 | user_hash=95b6504a8bd6 | 4 obs
+  02151ae29612d89b75c32771ed9737e1 | chat-response | session=s01 | user_hash=2055254ee30a | 4 obs
+
+## Chi tiet 1 trace (request co so the tin dung)
+trace id   = 922e771578daf7302bb2fe579af07ad5
+  name        = chat-response
+  sessionId   = s09
+  userId      = 4d14d5d4f719
+  tags        = ['claude-sonnet-4-5', 'lab', 'qa']
+  environment = dev
+  input       = What is the policy for PII and credit card [REDACTED_CREDIT_CARD]?
+  output      = Starter answer. Teams should improve this output logic and add better quality checks. Use retrieved context and keep responses concise.
+  metadata    = {"correlation_id": "req-487e5b1a", "doc_count": 1, "latency_ms": 156, "prompt_name": "day13-chat", "prompt_label": "production", "prompt_version": 1, "prompt_source": "langfuse"}
+
+  observations:
+    - llm-generate       type=GENERATION  level=DEFAULT model=claude-sonnet-4-5 usage={'prompt_tokens': 36, 'completion_tokens': 165, 'total': 201} cost={'total': 0.002583}
+    - resolve-prompt     type=SPAN        level=DEFAULT
+    - retrieve-context   type=SPAN        level=DEFAULT
+    - chat-response      type=SPAN        level=DEFAULT
+
+  score: quality_proxy = 0.9  (heuristic quality proxy, docs=1)
+
+  PII check tren du lieu that tu Langfuse:
+    OK   -> khong co stu***@vinuni.edu.vn
+    OK   -> khong co 098*****21
+    OK   -> khong co 4111 **** **** 1111
+    OK   -> khong co u09 (user_id tho)

@@ -1,0 +1,341 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1786418075690,
+  "projectRoot": "/Users/nhatnguyen/Desktop/AIA/labs/Day13-K3-Observability-B61",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "requirements.txt"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "pip",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": "snake_case",
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "app",
+      "docs",
+      "scripts",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "app": {
+      "path": "app",
+      "purpose": "Application code",
+      "fileCount": 15,
+      "lastAccessed": 1786418075679,
+      "keyFiles": [
+        "__init__.py",
+        "agent.py",
+        "challenge.py",
+        "cli.py",
+        "incidents.py"
+      ]
+    },
+    "config": {
+      "path": "config",
+      "purpose": "Configuration files",
+      "fileCount": 5,
+      "lastAccessed": 1786418075680,
+      "keyFiles": [
+        "alert_rules.yaml",
+        "challenge.json",
+        "dashboard.yaml",
+        "logging_schema.json",
+        "slo.yaml"
+      ]
+    },
+    "data": {
+      "path": "data",
+      "purpose": "Data files",
+      "fileCount": 3,
+      "lastAccessed": 1786418075681,
+      "keyFiles": [
+        "expected_answers.jsonl",
+        "incidents.json",
+        "sample_queries.jsonl"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 8,
+      "lastAccessed": 1786418075682,
+      "keyFiles": [
+        "DASHBOARD_SETUP.md",
+        "GUIDE.md",
+        "PROMPT_VERSIONING.md",
+        "alerts.md",
+        "blueprint-template.md"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 4,
+      "lastAccessed": 1786418075683,
+      "keyFiles": [
+        "inject_incident.py",
+        "load_test.py",
+        "validate_dashboard.py",
+        "validate_logs.py"
+      ]
+    },
+    "submission": {
+      "path": "submission",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1786418075684,
+      "keyFiles": [
+        "REPORT.md"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 10,
+      "lastAccessed": 1786418075684,
+      "keyFiles": [
+        "test_agent_prompt_trace.py",
+        "test_challenge_config.py",
+        "test_chat_observability.py",
+        "test_cli_windows_encoding.py",
+        "test_dashboard_validator.py"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "app/main.py",
+      "accessCount": 7,
+      "lastAccessed": 1786421113896,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_tracing_structure.py",
+      "accessCount": 6,
+      "lastAccessed": 1786421124184,
+      "type": "file"
+    },
+    {
+      "path": "app/tracing.py",
+      "accessCount": 5,
+      "lastAccessed": 1786421102214,
+      "type": "file"
+    },
+    {
+      "path": "submission/REPORT.md",
+      "accessCount": 5,
+      "lastAccessed": 1786421721215,
+      "type": "file"
+    },
+    {
+      "path": "app/agent.py",
+      "accessCount": 4,
+      "lastAccessed": 1786420803530,
+      "type": "file"
+    },
+    {
+      "path": "CHECKPOINTS.md",
+      "accessCount": 2,
+      "lastAccessed": 1786419363691,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 2,
+      "lastAccessed": 1786419364337,
+      "type": "file"
+    },
+    {
+      "path": "RULES.md",
+      "accessCount": 2,
+      "lastAccessed": 1786419365107,
+      "type": "file"
+    },
+    {
+      "path": "RUBRIC.md",
+      "accessCount": 2,
+      "lastAccessed": 1786419365132,
+      "type": "file"
+    },
+    {
+      "path": "SUBMISSION.md",
+      "accessCount": 2,
+      "lastAccessed": 1786419365796,
+      "type": "file"
+    },
+    {
+      "path": "SETUP.md",
+      "accessCount": 2,
+      "lastAccessed": 1786419366353,
+      "type": "file"
+    },
+    {
+      "path": "app/pii.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419372725,
+      "type": "file"
+    },
+    {
+      "path": "app/middleware.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419373536,
+      "type": "file"
+    },
+    {
+      "path": "app/logging_config.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419373591,
+      "type": "file"
+    },
+    {
+      "path": "scripts/validate_logs.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419379692,
+      "type": "file"
+    },
+    {
+      "path": "scripts/load_test.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419381076,
+      "type": "file"
+    },
+    {
+      "path": "app/schemas.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419391122,
+      "type": "file"
+    },
+    {
+      "path": "app/incidents.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419402742,
+      "type": "file"
+    },
+    {
+      "path": "app/mock_rag.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419403475,
+      "type": "file"
+    },
+    {
+      "path": "app/mock_llm.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419403832,
+      "type": "file"
+    },
+    {
+      "path": "app/prompt_management.py",
+      "accessCount": 2,
+      "lastAccessed": 1786419891474,
+      "type": "file"
+    },
+    {
+      "path": "app/metrics.py",
+      "accessCount": 1,
+      "lastAccessed": 1786418264597,
+      "type": "file"
+    },
+    {
+      "path": "app/challenge.py",
+      "accessCount": 1,
+      "lastAccessed": 1786418272018,
+      "type": "file"
+    },
+    {
+      "path": "app/cli.py",
+      "accessCount": 1,
+      "lastAccessed": 1786418272706,
+      "type": "file"
+    },
+    {
+      "path": "scripts/validate_dashboard.py",
+      "accessCount": 1,
+      "lastAccessed": 1786418276575,
+      "type": "file"
+    },
+    {
+      "path": "scripts/inject_incident.py",
+      "accessCount": 1,
+      "lastAccessed": 1786418277557,
+      "type": "file"
+    },
+    {
+      "path": "config/logging_schema.json",
+      "accessCount": 1,
+      "lastAccessed": 1786419380374,
+      "type": "file"
+    },
+    {
+      "path": "docs/grading-evidence.md",
+      "accessCount": 1,
+      "lastAccessed": 1786419414110,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_pii.py",
+      "accessCount": 1,
+      "lastAccessed": 1786419543560,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_chat_observability.py",
+      "accessCount": 1,
+      "lastAccessed": 1786419543619,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_correlation_and_enrichment.py",
+      "accessCount": 1,
+      "lastAccessed": 1786419587399,
+      "type": "file"
+    },
+    {
+      "path": "submission/evidence/cp1-pii-redaction.txt",
+      "accessCount": 1,
+      "lastAccessed": 1786419730257,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_tracing_adapter.py",
+      "accessCount": 1,
+      "lastAccessed": 1786420620331,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_agent_prompt_trace.py",
+      "accessCount": 1,
+      "lastAccessed": 1786420620383,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

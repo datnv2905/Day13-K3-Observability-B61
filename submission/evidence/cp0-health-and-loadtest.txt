@@ -1,0 +1,25 @@
+# CP0 - API health + load test
+# Ngay: 2026-08-11T03:40:30Z
+
+$ curl -i http://127.0.0.1:8000/health
+HTTP/1.1 200 OK
+date: Tue, 11 Aug 2026 03:40:29 GMT
+server: uvicorn
+content-length: 103
+content-type: application/json
+x-request-id: req-75c5d22e
+x-response-time-ms: 1.4
+
+{"ok":true,"tracing_enabled":false,"incidents":{"rag_slow":false,"tool_fail":false,"cost_spike":false}}
+
+$ python scripts/load_test.py
+[200] req-2fac470b | qa | 226.0ms
+[200] req-a0359740 | qa | 163.0ms
+[200] req-0d43b28d | summary | 155.7ms
+[200] req-6d6ae65c | qa | 157.9ms
+[200] req-e2b199ba | qa | 158.8ms
+[200] req-f2743578 | summary | 158.1ms
+[200] req-f3f2763f | qa | 158.2ms
+[200] req-8b22dc2b | qa | 158.4ms
+[200] req-b8fa0527 | qa | 160.0ms
+[200] req-2f344ecb | qa | 157.7ms

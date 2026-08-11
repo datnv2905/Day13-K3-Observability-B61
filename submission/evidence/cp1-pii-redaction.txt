@@ -1,0 +1,35 @@
+# CP1 - PII redaction (2 lop phong thu)
+# Lop 1: summarize_text() -> scrub_text() tai cho goi log
+# Lop 2: scrub_event processor trong structlog pipeline (chan cuoi)
+# Ngay: 2026-08-11T03:42:06Z
+
+## Input GOC gui vao /chat (gia tri da mask trong file evidence nay)
+Nguon: data/sample_queries.jsonl (dong 1, 5, 9) + 1 request demo thu cong.
+  u01 -> "...My email is stu***@vinuni.edu.vn"
+  u05 -> "Here is my phone 098*****21, what should be logged?"
+  u09 -> "...credit card 4111 **** **** 1111?"
+  u_demo -> "Contact me at dem***@vinuni.edu.vn or 091*****78, card 4111-****-****-1111,"
+            " so nha 12 duong Lang, quan Dong Da"
+
+## Log tuong ung trong data/logs.jsonl: PII da bi che
+{"service": "api", "payload": {"message_preview": "What is your refund policy? My email is [REDACTED_EMAIL]"}, "event": "request_received", "session_id": "s01", "user_id_hash": "2055254ee30a", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-2fac470b", "level": "info", "ts": "2026-08-11T03:38:40.467348Z"}
+{"service": "api", "payload": {"message_preview": "Here is my phone [REDACTED_PHONE_VN], what should be logged?"}, "event": "request_received", "session_id": "s05", "user_id_hash": "64f6ec689229", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-e2b199ba", "level": "info", "ts": "2026-08-11T03:38:41.168815Z"}
+{"service": "api", "payload": {"message_preview": "What is the policy for PII and credit card [REDACTED_CREDIT_CARD]?"}, "event": "request_received", "session_id": "s09", "user_id_hash": "4d14d5d4f719", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-b8fa0527", "level": "info", "ts": "2026-08-11T03:38:41.802223Z"}
+{"service": "api", "payload": {"message_preview": "Contact me at [REDACTED_EMAIL] or [REDACTED_PHONE_VN], card [REDACTED_CREDIT_CAR..."}, "event": "request_received", "session_id": "s_demo", "user_id_hash": "58335a0a668e", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-trace-demo-001", "level": "info", "ts": "2026-08-11T03:38:50.759794Z"}
+
+## Kiem chung nguoc: quet data/logs.jsonl tim gia tri PII nguyen van
+  OK (khong tim thay): stu***vn
+  OK (khong tim thay): dem***vn
+  OK (khong tim thay): 098***21
+  OK (khong tim thay): 091***78
+  OK (khong tim thay): 411***11
+  OK (khong tim thay): 411***11
+  OK (khong tim thay): "u0***1"
+  OK (khong tim thay): "u_***o"
+
+## user_id duoc hash, khong ghi nguyen van
+  hash_user_id('u01') = 2055254ee30a  (SHA-256, 12 ky tu dau)
+
+## Bang chung lop chan cuoi (scrub_event)
+Test tests/test_correlation_and_enrichment.py::test_scrub_processor_redacts_pii_not_passed_through_summarize
+ghi PII THO thang vao payload (khong qua summarize_text) va assert no van bi che -> PASSED.
