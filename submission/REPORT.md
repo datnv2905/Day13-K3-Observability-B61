@@ -7,17 +7,18 @@
 - **Commit SHA cuối:** `4ab6301fa4c2f7a4c57eff27da33bb7ecfe7f52c` — commit chứa toàn bộ bài
   làm. Commit cuối trên `main` có thể mới hơn đúng một commit (chính là commit ghi dòng
   SHA này và dọn `.omc/`); lấy giá trị nộp bằng `git rev-parse HEAD`.
-- **Thành viên và vai trò:** _(cần xác nhận — bảng dưới dựng từ lịch sử Git, xem mục 7)_
+- **Thành viên và vai trò:**
 
-| Tác giả trong Git | Vai trò theo phân vai ở README |
-|---|---|
-| Hoang Phong | Logging & PII |
-| duclh | Dashboard, SLO & Alert |
-| Datnv | Dashboard, SLO & Alert |
-| Nhat Tran | Tracing & Prompt Version + Incident, Report & Demo |
+| Họ tên | MSSV | Tác giả trong Git | Vai trò |
+|---|---|---|---|
+| Nguyễn Văn Đạt | 2A202601969 | `Datnv <datbn5602@gmail.com>` | Dashboard, SLO & Alert |
+| Nguyễn Trọng Toàn | 2A202601493 | _chưa có commit_ | _(cần điền)_ |
+| Hoàng Nguyễn Phong | 2A202601077 | `Hoang Phong <hoangphong210703@gmail.com>` | Logging & PII |
+| Lê Hồng Đức | 2A202601313 | `duclh <duclh005@example.com>` | Dashboard, SLO & Alert |
+| Trần Nguyễn Thế Nhật | 2A202601155 | `Nhat Tran <nhatjames24.2004@gmail.com>` | Tracing & Prompt Version; Incident, Report & Demo |
 
-`HungBil` là tác giả các commit khởi tạo lab và commit release `config/challenge.json`,
-không tính là thành viên nhóm.
+Tác giả `HungBil <nguyendonghung70@gmail.com>` là người khởi tạo repo lab và release
+`config/challenge.json`, không thuộc nhóm.
 
 ## 2. Kết quả kỹ thuật
 
@@ -449,13 +450,22 @@ Metrics phát hiện *có* sự cố, nhưng không chứng minh được nguyê
 > cáo phải khớp thay đổi thật trong Git, nên đừng sửa cột Commit nếu chưa kiểm tra lại.
 > Kiểm tra nhanh: `git log --author="<tên>" --oneline --stat`.
 
-| Thành viên | Phần việc | Commit/PR | Điều đã học |
-|---|---|---|---|
-| Hoang Phong | Checkpoint 1 — correlation ID, log enrichment, PII redaction (`app/middleware.py`, `app/main.py`, `app/pii.py`, `app/logging_config.py`) | `d6b4c6f` phase 1<br>`e41c2c4` phase 2 | _(tự điền)_ |
-| duclh | `.gitignore`; hoàn thiện phase 1; SLO + alert rules + runbook (`config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md`); merge nhánh nhóm | `611a0d2`, `f9e8018`,<br>`7703466` slo + alert,<br>`7405d0d` merge | _(tự điền)_ |
-| Datnv | Dashboard builder + dashboard contract (`scripts/build_dashboard.py`, `docs/dashboard-spec.md`); validator alert + test SLO (`scripts/validate_alerts.py`, `tests/test_slo_alert_configuration.py`) | `ad1f9bf`,<br>`3bba989` | _(tự điền)_ |
-| Nhat Tran | Instrumentation trace theo skill Langfuse (span phân cấp, mask PII, score, correlation_id ↔ trace); prompt v1/v2 + rollback; điều tra Checkpoint 3; test hồi quy | `a0df0f8`,<br>`6cb70bf` Checkpoint 3,<br>`4ab6301` fix validator | _(tự điền)_ |
+| Thành viên | MSSV | Phần việc | Commit/PR | Điều đã học |
+|---|---|---|---|---|
+| Hoàng Nguyễn Phong | 2A202601077 | Checkpoint 1 — correlation ID, log enrichment, PII redaction (`app/middleware.py`, `app/main.py`, `app/pii.py`, `app/logging_config.py`) | `d6b4c6f` phase 1<br>`e41c2c4` phase 2 | _(tự điền)_ |
+| Lê Hồng Đức | 2A202601313 | `.gitignore`; hoàn thiện phase 1; SLO + alert rules + runbook (`config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md`); merge nhánh nhóm | `611a0d2`, `f9e8018`,<br>`7703466` slo + alert,<br>`7405d0d` merge | _(tự điền)_ |
+| Nguyễn Văn Đạt | 2A202601969 | Dashboard builder + dashboard contract (`scripts/build_dashboard.py`, `docs/dashboard-spec.md`); validator alert + test SLO (`scripts/validate_alerts.py`, `tests/test_slo_alert_configuration.py`) | `ad1f9bf`,<br>`3bba989` | _(tự điền)_ |
+| Trần Nguyễn Thế Nhật | 2A202601155 | Instrumentation trace theo skill Langfuse (span phân cấp, mask PII, score, correlation_id ↔ trace); prompt v1/v2 + rollback; điều tra Checkpoint 3; test hồi quy | `a0df0f8`,<br>`6cb70bf` Checkpoint 3,<br>`4ab6301` fix validator | _(tự điền)_ |
+| Nguyễn Trọng Toàn | 2A202601493 | _(cần điền)_ | **Chưa có commit nào mang tên/email của thành viên này trong lịch sử Git** | _(tự điền)_ |
 
-Ghi chú để trả lời phản biện: `HungBil` là tác giả các commit khởi tạo lab
-(`b95464c`, `f1a02e5`, `7a57bfb`) và commit release `config/challenge.json` (`cd84f4f`),
-không phải đóng góp của nhóm.
+**Lưu ý cho Nguyễn Trọng Toàn:** rubric B2 (20 điểm) yêu cầu "có commit/PR cụ thể và có
+thể kiểm tra", và phần khai trong báo cáo phải khớp thay đổi trong Git. Hiện `git log`
+không có tác giả nào ứng với thành viên này. Nếu có đóng góp thật thì cần tạo commit
+mang tên/email của mình trước khi nộp; nếu đã đóng góp qua máy người khác thì dùng
+`git commit --amend --author` hoặc thêm trailer `Co-authored-by:` để lịch sử phản ánh đúng.
+
+Kiểm tra lại từng dòng bằng: `git log --author="<tên hoặc email>" --oneline --stat`.
+
+Ghi chú để trả lời phản biện: `HungBil <nguyendonghung70@gmail.com>` là tác giả các commit
+khởi tạo lab (`b95464c`, `f1a02e5`, `7a57bfb`) và commit release `config/challenge.json`
+(`cd84f4f`), không phải đóng góp của nhóm.
