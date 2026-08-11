@@ -1,19 +1,54 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
+  - name: chat_latency_p95_slo_breach
+    severity: warning
     type: symptom-based
-    owner: TODO
+    sli: latency_p95_ms
+    dashboard_panel: latency
+    source: data/logs.jsonl
+    condition: "P95(response_sent.latency_ms) > 3000 ms trong cửa sổ 60 phút, kéo dài 10 phút liên tiếp."
+    threshold:
+      aggregation: p95
+      operator: gt
+      value: 3000
+      unit: ms
+    evaluation_window: 60m
+    for: 10m
+    minimum_samples: 20
+    owner: observability-oncall
     runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
+
+  - name: chat_error_rate_slo_breach
+    severity: critical
     type: symptom-based
-    owner: TODO
+    sli: error_rate_pct
+    dashboard_panel: errors
+    source: data/logs.jsonl
+    condition: "request_failed / request_received * 100 > 2% trong cửa sổ 60 phút, kéo dài 5 phút liên tiếp."
+    threshold:
+      aggregation: error_rate_pct
+      operator: gt
+      value: 2
+      unit: percent
+    evaluation_window: 60m
+    for: 5m
+    minimum_samples: 20
+    owner: observability-oncall
     runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
+
+  - name: chat_quality_proxy_slo_breach
+    severity: warning
     type: symptom-based
-    owner: TODO
+    sli: quality_score_avg
+    dashboard_panel: quality
+    source: data/logs.jsonl
+    condition: "mean(response_sent.quality_score) < 0.75 trong cửa sổ 60 phút, kéo dài 15 phút liên tiếp."
+    threshold:
+      aggregation: mean
+      operator: lt
+      value: 0.75
+      unit: score_0_to_1
+    evaluation_window: 60m
+    for: 15m
+    minimum_samples: 20
+    owner: observability-oncall
     runbook: docs/alerts.md#alert-3

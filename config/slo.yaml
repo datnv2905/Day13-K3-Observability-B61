@@ -1,16 +1,82 @@
 service: day13-observability-lab
+source: data/logs.jsonl
+# `window` là kỳ báo cáo SLO; mọi phép đo bên dưới dùng cùng cửa sổ 60 phút
+# và ngưỡng với dashboard contract.
 window: 28d
+evaluation_window: 60m
+refresh_seconds: 30
+
 slis:
   latency_p95_ms:
+    description: P95 latency của các response đã gửi thành công
+    event: response_sent
+    field: latency_ms
+    aggregation: p95
+    operator: lte
     objective: 3000
+    unit: ms
     target: 99.5
-    note: Replace with your group's target
+    target_description: "Ít nhất 99.5% cửa sổ 60 phút có P95 latency <= 3000 ms."
+
   error_rate_pct:
+    description: Tỷ lệ request thất bại trên toàn bộ request nhận vào
+    numerator_event: request_failed
+    denominator_event: request_received
+    aggregation: error_rate_pct
+    operator: lte
     objective: 2
+    unit: percent
     target: 99.0
-  daily_cost_usd:
+    target_description: "Ít nhất 99% cửa sổ 60 phút có error rate <= 2%."
+
+  cost_total_usd:
+    description: Tổng chi phí ước tính của response trong cửa sổ dashboard
+    event: response_sent
+    field: cost_usd
+    aggregation: total
+    operator: lte
     objective: 2.5
+    unit: usd
     target: 100.0
+    target_description: "Mỗi cửa sổ 60 phút giữ tổng cost <= 2.5 USD."
+
   quality_score_avg:
+    description: Điểm quality proxy trung bình của response đã gửi
+    event: response_sent
+    field: quality_score
+    aggregation: mean
+    operator: gte
     objective: 0.75
+    unit: score_0_to_1
     target: 95.0
+    target_description: "Ít nhất 95% cửa sổ 60 phút có quality proxy trung bình >= 0.75."
+
+# Hai threshold này xuất hiện trên dashboard để theo dõi vận hành, nhưng không
+# phải alert symptom-based: traffic thấp có thể chỉ là không có người dùng và
+# token cao chưa tự nó chứng minh người dùng bị ảnh hưởng.
+guardrails:
+  traffic_rate_per_minute:
+    event: request_received
+    aggregation: rate_per_minute
+    operator: gte
+    objective: 1
+    unit: requests_per_minute
+    window: 60m
+
+  tokens_in_total:
+    event: response_sent
+    field: tokens_in
+    aggregation: total
+    operator: lte
+    objective: 50000
+    unit: tokens
+    window: 60m
+
+  tokens_out_total:
+    event: response_sent
+    field: tokens_out
+    aggregation: total
+    operator: lte
+    objective: 50000
+    unit: tokens
+    window: 60m
