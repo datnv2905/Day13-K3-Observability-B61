@@ -1,16 +1,41 @@
 service: day13-observability-lab
 window: 28d
+
+# Mỗi SLI đặt theo đúng threshold đang hiển thị trên dashboard (config/dashboard.yaml)
+# để một chỉ số chỉ có một con số đúng. Đổi ở đây thì phải đổi cả hai chỗ.
+#
+#   objective = ngưỡng "tốt" của một phép đo đơn lẻ
+#   target    = bao nhiêu phần trăm thời gian trong cửa sổ 28 ngày phải đạt objective
 slis:
   latency_p95_ms:
     objective: 3000
     target: 99.5
-    note: Replace with your group's target
+    note: >-
+      Dùng P95 chứ không dùng average. Baseline đo được p50 150 ms nhưng p95 1088 ms
+      (gấp 7.25 lần) do request đầu sau mỗi lần khởi động phải fetch prompt từ Langfuse;
+      average chỉ 236.9 ms nên sẽ giấu mất toàn bộ phần đuôi này.
+      Ngưỡng 3000 ms là mức người dùng còn chịu được cho một câu trả lời có RAG.
+
   error_rate_pct:
     objective: 2
     target: 99.0
+    note: >-
+      Tính bằng count(request_failed) / count(request_received). Target thấp hơn latency
+      vì lỗi ảnh hưởng nặng hơn chậm: người dùng không nhận được câu trả lời nào.
+
   daily_cost_usd:
     objective: 2.5
     target: 100.0
+    note: >-
+      Đây là ngân sách cứng, không phải chỉ tiêu chất lượng, nên target 100% —
+      vượt một ngày cũng là vượt. Baseline 22 request tốn $0.0476, tức trần này
+      tương đương khoảng 1150 request/ngày ở mức tiêu thụ token hiện tại.
+
   quality_score_avg:
     objective: 0.75
     target: 95.0
+    note: >-
+      Quality proxy là heuristic (app/agent.py::_heuristic_quality), không phải đánh giá
+      thật, nên target nới hơn ba SLI kia và chỉ dùng để phát hiện tụt hạng bất thường —
+      ví dụ RAG trả về rỗng hoặc câu trả lời bị redact quá tay. Không dùng để chấm
+      prompt nào hay hơn.
