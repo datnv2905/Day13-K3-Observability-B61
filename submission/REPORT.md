@@ -2,10 +2,22 @@
 
 ## 1. Thông tin nhóm
 
-- Tên nhóm:
-- Repository URL:
-- Commit SHA cuối:
-- Thành viên và vai trò:
+- **Tên nhóm:** _(cần điền)_
+- **Repository URL:** https://github.com/datnv2905/Day13-K3-Observability-B61
+- **Commit SHA cuối:** `4ab6301fa4c2f7a4c57eff27da33bb7ecfe7f52c` — commit chứa toàn bộ bài
+  làm. Commit cuối trên `main` có thể mới hơn đúng một commit (chính là commit ghi dòng
+  SHA này và dọn `.omc/`); lấy giá trị nộp bằng `git rev-parse HEAD`.
+- **Thành viên và vai trò:** _(cần xác nhận — bảng dưới dựng từ lịch sử Git, xem mục 7)_
+
+| Tác giả trong Git | Vai trò theo phân vai ở README |
+|---|---|
+| Hoang Phong | Logging & PII |
+| duclh | Dashboard, SLO & Alert |
+| Datnv | Dashboard, SLO & Alert |
+| Nhat Tran | Tracing & Prompt Version + Incident, Report & Demo |
+
+`HungBil` là tác giả các commit khởi tạo lab và commit release `config/challenge.json`,
+không tính là thành viên nhóm.
 
 ## 2. Kết quả kỹ thuật
 
@@ -432,8 +444,18 @@ Metrics phát hiện *có* sự cố, nhưng không chứng minh được nguyê
 
 ## 7. Đóng góp cá nhân
 
-Với mỗi thành viên, ghi rõ nhiệm vụ và link commit/PR tương ứng.
+> **Bảng dưới là bản nháp dựng từ `git log`, cần từng thành viên tự xác nhận và bổ sung
+> cột "Điều đã học" bằng lời của mình.** Rubric B2 (20 điểm) yêu cầu phần khai trong báo
+> cáo phải khớp thay đổi thật trong Git, nên đừng sửa cột Commit nếu chưa kiểm tra lại.
+> Kiểm tra nhanh: `git log --author="<tên>" --oneline --stat`.
 
 | Thành viên | Phần việc | Commit/PR | Điều đã học |
 |---|---|---|---|
-| | | | |
+| Hoang Phong | Checkpoint 1 — correlation ID, log enrichment, PII redaction (`app/middleware.py`, `app/main.py`, `app/pii.py`, `app/logging_config.py`) | `d6b4c6f` phase 1<br>`e41c2c4` phase 2 | _(tự điền)_ |
+| duclh | `.gitignore`; hoàn thiện phase 1; SLO + alert rules + runbook (`config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md`); merge nhánh nhóm | `611a0d2`, `f9e8018`,<br>`7703466` slo + alert,<br>`7405d0d` merge | _(tự điền)_ |
+| Datnv | Dashboard builder + dashboard contract (`scripts/build_dashboard.py`, `docs/dashboard-spec.md`); validator alert + test SLO (`scripts/validate_alerts.py`, `tests/test_slo_alert_configuration.py`) | `ad1f9bf`,<br>`3bba989` | _(tự điền)_ |
+| Nhat Tran | Instrumentation trace theo skill Langfuse (span phân cấp, mask PII, score, correlation_id ↔ trace); prompt v1/v2 + rollback; điều tra Checkpoint 3; test hồi quy | `a0df0f8`,<br>`6cb70bf` Checkpoint 3,<br>`4ab6301` fix validator | _(tự điền)_ |
+
+Ghi chú để trả lời phản biện: `HungBil` là tác giả các commit khởi tạo lab
+(`b95464c`, `f1a02e5`, `7a57bfb`) và commit release `config/challenge.json` (`cd84f4f`),
+không phải đóng góp của nhóm.

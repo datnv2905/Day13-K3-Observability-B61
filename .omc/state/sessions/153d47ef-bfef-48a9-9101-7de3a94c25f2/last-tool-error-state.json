@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /Users/nhatnguyen/Desktop/AIA/labs/Day13-K3-Observability-B61\\nset -a; . ./.env; set +a\\nexport LANGFUSE_BASE_URL=\\\"$LANGFUSE_HOST\\\"\\nnpx -y langfuse-cli api trace get 922e771578daf7302...",
-  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 3, in <module>\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/decoder.py\", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File...",
-  "timestamp": "2026-08-11T04:13:59.094Z",
-  "retry_count": 1
-}

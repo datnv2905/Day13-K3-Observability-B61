@@ -1,6 +1,0 @@
-{"t":0,"agent":"affbe8f","agent_type":"untracked-native-fork","event":"agent_stop","success":true,"synthetic":true,"telemetry_status":"unmatched_stop","reason":"SubagentStop arrived without a matching SubagentStart; native Agent/Task start telemetry was not observed."}
-{"t":0,"agent":"a7da5e9","agent_type":"untracked-native-fork","event":"agent_stop","success":true,"synthetic":true,"telemetry_status":"unmatched_stop","reason":"SubagentStop arrived without a matching SubagentStart; native Agent/Task start telemetry was not observed."}
-{"t":0,"agent":"system","event":"skill_invoked","skill_name":"artifact-design"}
-{"t":0,"agent":"system","event":"skill_invoked","skill_name":"artifact-diagramming"}
-{"t":0,"agent":"af91636","agent_type":"untracked-native-fork","event":"agent_stop","success":true,"synthetic":true,"telemetry_status":"unmatched_stop","reason":"SubagentStop arrived without a matching SubagentStart; native Agent/Task start telemetry was not observed."}
-{"t":0,"agent":"a94e63f","agent_type":"untracked-native-fork","event":"agent_stop","success":true,"synthetic":true,"telemetry_status":"unmatched_stop","reason":"SubagentStop arrived without a matching SubagentStart; native Agent/Task start telemetry was not observed."}

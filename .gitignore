@@ -9,3 +9,6 @@ data/audit.jsonl
 .antigravity/
 
 AGENTS.md
+
+# State noi bo cua tooling, khong thuoc bai nop
+.omc/

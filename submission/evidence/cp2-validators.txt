@@ -1,0 +1,27 @@
+# Ket qua validator (bat buoc trong SUBMISSION.md)
+# Ngay: 2026-08-11T05:52:04Z
+
+$ python scripts/validate_dashboard.py
+HỢP LỆ: 6/6 panel có trong dashboard contract.
+
+$ python scripts/validate_alerts.py
+HỢP LỆ: 4 alert rule đã điền, có runbook, và ngưỡng khớp SLO + dashboard.
+
+$ python scripts/validate_logs.py
+--- Lab Verification Results ---
+Total log records analyzed: 215
+Records with missing required fields: 0
+Records with missing enrichment (context): 0
+Unique correlation IDs found: 85
+Potential PII leaks detected: 0
+
+--- Grading Scorecard (Estimates) ---
++ [PASSED] Basic JSON schema
++ [PASSED] Correlation ID propagation
++ [PASSED] Log enrichment
++ [PASSED] PII scrubbing
+
+Estimated Score: 100/100
+
+$ python -m pytest -q
+40 passed, 4 warnings in 17.57s
