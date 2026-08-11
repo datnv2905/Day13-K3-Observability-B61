@@ -1,0 +1,59 @@
+# CP3 - Dieu tra challenge chinh thuc
+# Challenge ID: day13-k3-observability-v1 (cohort K3, seed 1303, latency_threshold_ms=2000)
+# Ngay: 2026-08-11T04:29:33Z
+# Quy trinh: chay input challenge 2 lan (khoe / sau khi bat incident) de so sanh cung dieu kien.
+
+## BUOC 1 - METRICS: phat hien trieu chung
+Chi so                     Baseline     Incident     Thay doi
+---------------------- ------------ ------------ ------------
+latency_p50 (ms)                155         2661        x17.2
+latency_p95 (ms)                598         3095         x5.2
+avg_cost_usd                 0.0024       0.0021   khong tang
+quality_avg                    0.86         0.86    khong doi
+error_breakdown                  {}           {}    khong loi
+
+  p50 = 2661ms -> vuot nguong 2000ms 1.33x ; p95 = 3095ms -> vuot 1.55x
+
+Suy luan loai tru:
+  - cost khong tang  -> KHONG phai cost_spike
+  - khong co error   -> KHONG phai tool_fail
+  - chi latency tang -> mot buoc trong pipeline bi cham
+
+## BUOC 2 - TRACES: khoanh vung span bat thuong
+  [KHOE] trace_id=f255cdd9257e710056a9c0132cb1f022  session=k3-challenge-s01  correlation_id=req-66b7064d
+      chat-response      SPAN             153ms
+      llm-generate       GENERATION       151ms
+      resolve-prompt     SPAN               1ms
+      retrieve-context   SPAN               0ms
+
+  [INCIDENT] trace_id=087f20a81491a6d4f74df066f543d493  session=k3-challenge-s02  correlation_id=req-9cddeabb
+      chat-response      SPAN            3097ms
+      retrieve-context   SPAN            2506ms
+      resolve-prompt     SPAN             434ms
+      llm-generate       GENERATION       155ms
+
+  => retrieve-context: 0ms (khoe) -> 2506ms (incident). Chenh ~2.5s.
+     llm-generate     : 151ms -> 155ms (gan nhu khong doi) => KHONG phai loi model.
+
+## BUOC 3 - LOGS: chung minh root cause
+Loc log theo correlation_id lay tu trace incident (req-9cddeabb):
+
+  {"ts": "2026-08-11T04:28:17.057296Z", "level": "info", "event": "request_received", "correlation_id": "req-9cddeabb", "feature": "refund", "session_id": "k3-challenge-s02"}
+  {"ts": "2026-08-11T04:28:20.154787Z", "level": "info", "event": "response_sent", "correlation_id": "req-9cddeabb", "feature": "refund", "session_id": "k3-challenge-s02", "latency_ms": 3095}
+
+Su kien bat incident:
+  {"service": "control", "payload": {"name": "rag_slow"}, "event": "incident_enabled", "correlation_id": "req-fca47938", "level": "warning", "ts": "2026-08-11T04:28:16.879295Z"}
+
+Phan bo latency 10 request feature=refund (cung input challenge):
+   [152, 154, 155, 156, 598, 2657, 2657, 2661, 2661, 3095]
+   -> hai cum tach bach, chenh ~2.5s, dung 5 request truoc / 5 sau khi bat incident.
+
+## ROOT CAUSE
+  app/mock_rag.py :: retrieve()
+      if STATE["rag_slow"]: time.sleep(2.5)
+  Buoc RAG retrieval bi chen do tre co dinh 2.5s truoc khi tra document.
+
+## GHI CHU CHAT LUONG TRACE
+  Lan chay dau, trace co 6 observation vi mock_rag/mock_llm cung mang @observe,
+  sinh span trung (retrieve + retrieve-context, llm_generate + llm-generate).
+  Da go 2 decorator do; trace hien con dung 4 observation.

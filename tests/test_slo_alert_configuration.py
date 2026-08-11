@@ -41,20 +41,26 @@ def test_alerts_are_complete_symptom_based_and_link_to_runbooks() -> None:
     raw_alerts = (REPO_ROOT / "config/alert_rules.yaml").read_text(encoding="utf-8")
     runbooks = (REPO_ROOT / "docs/alerts.md").read_text(encoding="utf-8")
 
-    assert len(alerts) == 3
+    assert len(alerts) == 4
     assert "TODO" not in raw_alerts
     assert "TODO" not in runbooks
     assert {alert["type"] for alert in alerts} == {"symptom-based"}
-    assert {alert["dashboard_panel"] for alert in alerts} == {"latency", "errors", "quality"}
+    assert {alert["dashboard_panel"] for alert in alerts} == {
+        "latency",
+        "errors",
+        "quality",
+        "cost",
+    }
     assert {alert["sli"] for alert in alerts} == {
         "latency_p95_ms",
         "error_rate_pct",
         "quality_score_avg",
+        "cost_total_usd",
     }
     assert all(alert["owner"] == "observability-oncall" for alert in alerts)
     assert all(alert["minimum_samples"] == 20 for alert in alerts)
 
-    for index in range(1, 4):
+    for index in range(1, len(alerts) + 1):
         assert f"## Alert {index}" in runbooks
     for field in (
         "- Tên:",
@@ -68,7 +74,7 @@ def test_alerts_are_complete_symptom_based_and_link_to_runbooks() -> None:
         assert f"{field}\n" not in runbooks
 
     # "Ba bước kiểm tra" là tiêu đề của một danh sách lồng nhau, nên có thể kết
-    # thúc bằng dấu hai chấm. Runbook phải thực sự có đủ ba tầng điều tra.
-    assert runbooks.count("**Metrics:**") == 3
-    assert runbooks.count("**Traces:**") == 3
-    assert runbooks.count("**Logs:**") == 3
+    # thúc bằng dấu hai chấm. MỖI alert phải thực sự có đủ ba tầng điều tra.
+    assert runbooks.count("**Metrics:**") == len(alerts)
+    assert runbooks.count("**Traces:**") == len(alerts)
+    assert runbooks.count("**Logs:**") == len(alerts)

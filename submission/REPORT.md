@@ -12,7 +12,7 @@
 - Điểm `validate_logs.py`: **100/100** (baseline 30/100) — [`evidence/cp1-final-validate-logs.txt`](evidence/cp1-final-validate-logs.txt)
 - Tổng số traces: **10** trên Langfuse, mỗi trace 4 observation — [`evidence/cp2-langfuse-traces.txt`](evidence/cp2-langfuse-traces.txt)
 - Số PII leak còn lại: **0** (`Potential PII leaks detected: 0` trên 23 log record)
-- Link/đường dẫn dashboard: _chưa làm — Checkpoint 2_
+- Link/đường dẫn dashboard: [`evidence/dashboard.html`](evidence/dashboard.html) — `validate_dashboard.py` báo `HỢP LỆ: 6/6 panel`
 
 ### Checkpoint 0 — baseline
 
@@ -44,6 +44,48 @@ bị vô hiệu ở baseline nên **chưa có lớp chặn cuối** — bất k�
 - Evidence regression tests: [`evidence/cp1-tests.txt`](evidence/cp1-tests.txt) — 28 passed
 - Evidence trace waterfall: [`evidence/cp2-trace-structure.txt`](evidence/cp2-trace-structure.txt)
 - Giải thích một span đáng chú ý: xem mục 3.4
+
+### 3.1 Correlation ID (`app/middleware.py`)
+
+`CorrelationIdMiddleware` xử lý theo thứ tự:
+
+1. `clear_contextvars()` đầu mỗi request — chặn rò context giữa các request dùng chung worker.
+2. Lấy `x-request-id` từ header nếu client gửi, ngược lại sinh `req-<8 hex>`. Nhận ID từ client
+   để giữ được chuỗi liên kết khi request đi qua nhiều service.
+3. `bind_contextvars(correlation_id=...)` để mọi `log.*` sau đó tự mang ID, không phải truyền tay.
+4. Trả `x-request-id` và `x-response-time-ms` về response header, giúp người dùng/QA báo lỗi kèm
+   đúng ID để tra log.
+
+Bằng chứng: request gửi kèm `x-request-id: req-trace-demo-001` cho ra đúng hai log record
+`request_received` + `response_sent` cùng ID đó; 10 request của load test cho 10 ID khác nhau.
+
+### 3.2 Log enrichment (`app/main.py`)
+
+Handler `/chat` bind thêm `user_id_hash`, `session_id`, `feature`, `model`, `env` vào contextvars,
+nên mọi log của `service=api` đều có đủ 5 field. `user_id` **không bao giờ** được ghi nguyên văn —
+chỉ ghi `hash_user_id()` (SHA-256, 12 ký tự đầu), đủ để nhóm request theo người dùng mà không lưu
+định danh. Ví dụ `u01 → 2055254ee30a`.
+
+### 3.3 PII redaction — hai lớp phòng thủ
+
+- **Lớp 1 — tại chỗ gọi:** `summarize_text()` trong `app/pii.py` scrub rồi mới cắt 80 ký tự.
+- **Lớp 2 — chặn cuối:** processor `scrub_event` trong `app/logging_config.py` chạy trên mọi
+  string trong `payload` và trên `event`, kể cả log không qua `summarize_text()`.
+
+Lớp 2 là phần thật sự được bật ở CP1. Test
+`test_scrub_processor_redacts_pii_not_passed_through_summarize` ghi PII thô thẳng vào `payload`
+và xác nhận nó vẫn bị che — đây là bằng chứng lớp chặn cuối hoạt động.
+
+Pattern đang bắt: `email`, `phone_vn` (`0xxxxxxxxx`, `+84...`, có `.`/`-`/space), `cccd` (12 số),
+`credit_card` (16 số), `passport_vn` (`A1234567`), `address_vn` (từ khoá tiếng Việt có/không dấu).
+
+Kiểm chứng ngược trên `data/logs.jsonl`: không tìm thấy `student@vinuni.edu.vn`,
+`demo.user@vinuni.edu.vn`, `0987654321`, `0912345678`, `4111 1111 1111 1111`,
+`4111-1111-1111-1111`, hay `user_id` nguyên văn.
+
+Hạn chế đã biết: redaction dựa trên regex nên chỉ bắt được định dạng đã liệt kê; PII dạng tự do
+(tên người, địa chỉ viết lạ) vẫn có thể lọt. Việc cắt 80 ký tự cũng có thể cắt ngang token
+`[REDACTED_CREDIT_CAR...` — không rò dữ liệu nhưng đọc log hơi khó.
 
 ### 3.4 Instrumentation trace theo skill `langfuse`
 
@@ -146,72 +188,209 @@ metadata cuối chứa cả `correlation_id` lẫn `prompt_name/label/version/so
 Latency trở lại ~160ms/request (trước đó ~1100ms do mỗi request phải chờ prompt
 fetch timeout vì 401) và không còn lỗi `Failed to export span batch`.
 
-### 3.1 Correlation ID (`app/middleware.py`)
-
-`CorrelationIdMiddleware` xử lý theo thứ tự:
-
-1. `clear_contextvars()` đầu mỗi request — chặn rò context giữa các request dùng chung worker.
-2. Lấy `x-request-id` từ header nếu client gửi, ngược lại sinh `req-<8 hex>`. Nhận ID từ client
-   để giữ được chuỗi liên kết khi request đi qua nhiều service.
-3. `bind_contextvars(correlation_id=...)` để mọi `log.*` sau đó tự mang ID, không phải truyền tay.
-4. Trả `x-request-id` và `x-response-time-ms` về response header, giúp người dùng/QA báo lỗi kèm
-   đúng ID để tra log.
-
-Bằng chứng: request gửi kèm `x-request-id: req-trace-demo-001` cho ra đúng hai log record
-`request_received` + `response_sent` cùng ID đó; 10 request của load test cho 10 ID khác nhau.
-
-### 3.2 Log enrichment (`app/main.py`)
-
-Handler `/chat` bind thêm `user_id_hash`, `session_id`, `feature`, `model`, `env` vào contextvars,
-nên mọi log của `service=api` đều có đủ 5 field. `user_id` **không bao giờ** được ghi nguyên văn —
-chỉ ghi `hash_user_id()` (SHA-256, 12 ký tự đầu), đủ để nhóm request theo người dùng mà không lưu
-định danh. Ví dụ `u01 → 2055254ee30a`.
-
-### 3.3 PII redaction — hai lớp phòng thủ
-
-- **Lớp 1 — tại chỗ gọi:** `summarize_text()` trong `app/pii.py` scrub rồi mới cắt 80 ký tự.
-- **Lớp 2 — chặn cuối:** processor `scrub_event` trong `app/logging_config.py` chạy trên mọi
-  string trong `payload` và trên `event`, kể cả log không qua `summarize_text()`.
-
-Lớp 2 là phần thật sự được bật ở CP1. Test
-`test_scrub_processor_redacts_pii_not_passed_through_summarize` ghi PII thô thẳng vào `payload`
-và xác nhận nó vẫn bị che — đây là bằng chứng lớp chặn cuối hoạt động.
-
-Pattern đang bắt: `email`, `phone_vn` (`0xxxxxxxxx`, `+84...`, có `.`/`-`/space), `cccd` (12 số),
-`credit_card` (16 số), `passport_vn` (`A1234567`), `address_vn` (từ khoá tiếng Việt có/không dấu).
-
-Kiểm chứng ngược trên `data/logs.jsonl`: không tìm thấy `student@vinuni.edu.vn`,
-`demo.user@vinuni.edu.vn`, `0987654321`, `0912345678`, `4111 1111 1111 1111`,
-`4111-1111-1111-1111`, hay `user_id` nguyên văn.
-
-Hạn chế đã biết: redaction dựa trên regex nên chỉ bắt được định dạng đã liệt kê; PII dạng tự do
-(tên người, địa chỉ viết lạ) vẫn có thể lọt. Việc cắt 80 ký tự cũng có thể cắt ngang token
-`[REDACTED_CREDIT_CAR...` — không rò dữ liệu nhưng đọc log hơi khó.
-
 ## 4. Prompt versioning
 
-- Prompt name:
-- Version/label baseline:
-- Version/label candidate:
-- Trace ID của mỗi version:
-- Bằng chứng đổi label hoặc rollback:
+Evidence: [`evidence/prompt-versioning.md`](evidence/prompt-versioning.md)
+
+- **Prompt name:** `day13-chat` (Langfuse Cloud region JP)
+- **Version/label baseline:** v1 — labels `baseline`, `production`. Template gốc 3 biến
+  `feature`, `docs`, `message`.
+- **Version/label candidate:** v2 — label `candidate`. Thêm ràng buộc *"Answer in at most
+  three sentences and cite the doc you used."*
+- **Trace ID của mỗi version** (đã xác minh tồn tại bằng `langfuse-cli api traces get`):
+
+| # | Thao tác | Trace ID | prompt_label | prompt_version | prompt_source |
+|---|---|---|---|---|---|
+| 1 | Chạy với label `baseline` | `d383d92f39a27f7f3ce274fa78976f73` | baseline | 1 | langfuse |
+| 2 | Chạy với label `candidate` | `22c9281a410b9ab1fb4d43d0c4f60aa0` | candidate | 2 | langfuse |
+| 3 | Promote `production` → v2, chạy lại | `cb924f04ecffbc155d531b1c051ac363` | production | 2 | langfuse |
+| 4 | Rollback `production` → v1, chạy lại | `129ab7dc2f4a6e074a3b49163ae9f70d` | production | 1 | langfuse |
+
+- **Bằng chứng đổi label / rollback:** bước 3 → 4 dùng **cùng label `production`** và
+  **cùng input**, nhưng `prompt_version` đổi từ 2 về 1 — không sửa code, không deploy lại,
+  không restart. Chỉ đổi con trỏ label trên Langfuse. Output thật của script:
+
+```
+$ python scripts/prompt_versions.py promote --version 2
+Trước: production -> v1
+Sau:   production -> v2  (promote)
+
+$ python scripts/prompt_versions.py rollback --version 1
+Trước: production -> v2
+Sau:   production -> v1  (rollback)
+```
+
+`prompt_source=langfuse` ở cả 4 trace xác nhận prompt được fetch thật từ Langfuse; nếu
+fetch hỏng giá trị sẽ là `local-fallback`.
+
+**Lưu ý về evidence cũ.** Bản trước của `evidence/prompt-versioning.md` khai 4 trace ID
+khác và nói v2 mang label `candidate`+`latest`. Kiểm tra lại bằng `langfuse-cli` thì cả 4
+ID đều trả `not found within authorized project` và prompt chỉ có v1. Nhiều khả năng
+chúng thuộc project/key Langfuse khác (key bị thay hai lần trong buổi lab). Toàn bộ đã
+được chạy lại và thay bằng số liệu kiểm chứng được.
+
+Prompt trên Langfuse là immutable nên **không chạy lại `setup`** — mỗi lần chạy sẽ đẻ
+thêm version mới. Vì project đã có sẵn v1, label `baseline` được gắn thẳng vào v1 bằng
+`update_prompt` và chỉ tạo thêm đúng một v2.
 
 ## 5. Dashboard, SLO và alerts
 
-- Kết quả `validate_dashboard.py`:
-- Evidence dashboard:
-- SLO đã chọn và lý do:
-- Alert rules và runbook:
+- **Kết quả `validate_dashboard.py`:** `HỢP LỆ: 6/6 panel có trong dashboard contract.`
+- **Evidence dashboard:** [`evidence/dashboard.html`](evidence/dashboard.html),
+  [`evidence/dashboard-baseline.png`](evidence/dashboard-baseline.png); contract ở
+  [`config/dashboard.yaml`](../config/dashboard.yaml), dựng bằng `scripts/build_dashboard.py`
+  từ `data/logs.jsonl`.
+
+### 5.1 SLO đã chọn và lý do
+
+[`config/slo.yaml`](../config/slo.yaml) — 4 SLI bám đúng 4 nhóm tín hiệu của dashboard:
+
+| SLI | Objective | Target 28d | Lý do |
+|---|---|---|---|
+| `latency_p95_ms` | **2000** | 99.5% | **Siết từ 3000 → 2000 sau CP3** |
+| `error_rate_pct` | 2 | 99.0% | `tool_fail` đẩy error lên 100%, ngưỡng 2% đủ nhạy |
+| `daily_cost_usd` | 2.5 | 100% | Ngân sách, không phải độ tin cậy → không có error budget |
+| `quality_score_avg` | 0.75 | 95% | Heuristic nội bộ, để 95% tránh báo động giả |
+
+Thay đổi quan trọng nhất là `latency_p95_ms`. Giá trị cũ 3000ms **cao hơn**
+`latency_threshold_ms=2000` của challenge, nghĩa là sự cố CP3 (p95 = 3095ms) chỉ vừa vượt
+3000 và gần như không đốt error budget — SLO khi đó không phản ánh được nỗi đau thật.
+Đã hạ xuống 2000ms và đồng bộ luôn `threshold` của panel latency trong
+`config/dashboard.yaml` để dashboard và SLO không mâu thuẫn nhau.
+
+Không đặt SLO cho `traffic`: lưu lượng là biến đầu vào của hệ thống, không phải cam kết
+chất lượng với người dùng.
+
+### 5.2 Alert rules và runbook
+
+[`config/alert_rules.yaml`](../config/alert_rules.yaml) + runbook
+[`docs/alerts.md`](../docs/alerts.md).
+
+| Alert | Severity | Điều kiện | SLI |
+|---|---|---|---|
+| `ChatLatencySLOBreach` | critical | `p95(latency_ms) > 2000` duy trì 5 phút | `latency_p95_ms` |
+| `ChatErrorRateHigh` | critical | error rate > 2% duy trì 5 phút | `error_rate_pct` |
+| `ChatCostBudgetSpike` | warning | cost 24h > 2.5 USD **hoặc** cost/request 15 phút > 3x mức 24h trước | `daily_cost_usd` |
+
+Ba alert phủ đúng ba cách hệ thống AI hỏng, nhưng phát biểu theo **triệu chứng người dùng**
+chứ không theo tên sự cố nội bộ:
+
+| Sự cố nội bộ | Triệu chứng người dùng | Alert |
+|---|---|---|
+| `rag_slow` | trả lời chậm | Alert 1 |
+| `tool_fail` | không có trả lời | Alert 2 |
+| `cost_spike` | không thấy gì, nhưng hoá đơn tăng | Alert 3 |
+
+Cột giữa mới là thứ được đặt ngưỡng. Nếu đặt alert theo `rag_slow`, khi nguyên nhân chậm
+đổi sang chỗ khác thì alert sẽ im lặng trong lúc người dùng vẫn khổ.
+
+Vài quyết định thiết kế đáng nói:
+
+- **Cost chỉ là `warning`, không `critical`.** Người dùng không bị ảnh hưởng, đây là rủi ro
+  tài chính. Đánh thức người trực lúc 3h sáng vì hoá đơn là sai ưu tiên.
+- **Điều kiện thứ hai của alert cost** (cost/request tăng 3x trong 15 phút) bắt được sự cố
+  sớm ngay cả khi ngân sách ngày chưa cạn — nếu chỉ canh trần 2.5 USD/ngày thì đến lúc
+  nổ đã tiêu hết tiền rồi.
+- **Owner ghi theo vai trò**, không ghi tên cá nhân, để alert không bị mồ côi khi đổi
+  người trực.
+- **Không đặt alert cho `traffic` và `quality_score`**: traffic là biến đầu vào; quality
+  proxy là heuristic nội bộ, đặt alert lên sẽ tạo nhiều báo động giả. Cả hai vẫn nằm trên
+  dashboard để phục vụ điều tra.
+
+Runbook viết theo hướng dùng được lúc 3h sáng: mỗi alert có ba bước kiểm tra đầu tiên
+theo đúng luồng Metrics → Traces → Logs, và mitigation tạm thời **rẽ nhánh theo span nào
+đang chậm** — vì `retrieve-context`, `resolve-prompt` và `llm-generate` chậm dẫn tới ba
+hành động khắc phục hoàn toàn khác nhau.
 
 ## 6. Điều tra challenge
 
-- Challenge ID:
-- Triệu chứng từ metrics:
-- Trace ID liên quan:
-- Log line/correlation ID liên quan:
-- Root cause:
-- Fix action:
-- Preventive measure:
+Evidence: [`evidence/cp3-challenge-investigation.txt`](evidence/cp3-challenge-investigation.txt)
+
+- **Challenge ID:** `day13-k3-observability-v1` (cohort K3, seed 1303, `latency_threshold_ms=2000`)
+- **Triệu chứng từ metrics:** `latency_p50` 155ms → **2661ms (x17.2)**, `latency_p95` 598ms →
+  **3095ms (x5.2)**, vượt ngưỡng 2000ms lần lượt 1.33x và 1.55x. Quan trọng hơn là những
+  chỉ số **không** đổi: `avg_cost_usd` 0.0024→0.0021, `quality_avg` 0.86→0.86,
+  `error_breakdown` rỗng.
+- **Trace ID liên quan:** `087f20a81491a6d4f74df066f543d493` (incident, 3097ms) đối chiếu
+  với `f255cdd9257e710056a9c0132cb1f022` (khoẻ, 153ms) — cùng `feature=refund`, cùng input.
+- **Log line/correlation ID liên quan:** `req-9cddeabb` (từ trace metadata), và
+  `req-fca47938` của sự kiện `incident_enabled`.
+- **Root cause:** `app/mock_rag.py :: retrieve()` — nhánh `if STATE["rag_slow"]:
+  time.sleep(2.5)` chèn độ trễ cố định 2.5s vào bước RAG retrieval trước khi trả document.
+
+### 6.1 Luồng Metrics → Traces → Logs
+
+**Metrics cho biết *có* vấn đề và loại trừ bớt khả năng.** Chỉ latency tăng, còn cost,
+quality và error đều đứng yên. Điều này loại ngay `cost_spike` (cost phải tăng) và
+`tool_fail` (phải có error 500). Kết luận: một bước trong pipeline bị chậm, không phải
+lỗi logic hay tăng tải.
+
+**Traces cho biết *ở đâu*.** So sánh waterfall hai trace cùng input:
+
+| Span | Khoẻ | Incident | Chênh |
+|---|---|---|---|
+| `chat-response` (root) | 153ms | 3097ms | +2944ms |
+| **`retrieve-context`** | **0ms** | **2506ms** | **+2506ms** |
+| `resolve-prompt` | 1ms | 434ms | +433ms |
+| `llm-generate` | 151ms | 155ms | +4ms |
+
+Toàn bộ độ trễ nằm ở `retrieve-context`. `llm-generate` gần như không đổi → **không phải
+lỗi model**. Đây chính là lý do việc tách span ở mục 3.4 là bắt buộc: với trace phẳng cũ
+chỉ thấy "request mất 3.1s" mà không biết bước nào.
+
+**Logs chứng minh *tại sao*, kèm mốc thời gian nhân quả:**
+
+```
+04:28:16.879Z  incident_enabled  rag_slow        level=warning   cid=req-fca47938
+04:28:17.057Z  request_received  cid=req-9cddeabb  feature=refund   (178ms sau khi bật)
+04:28:20.154Z  response_sent     cid=req-9cddeabb  latency_ms=3095
+```
+
+Phân bố latency của 10 request `feature=refund` (cùng input) tách thành hai cụm rõ rệt:
+`152, 154, 155, 156, 598` và `2657, 2657, 2661, 2661, 3095`. Đúng 5 request trước và 5
+request sau thời điểm bật incident, chênh nhau ~2.5s — khớp chính xác với `time.sleep(2.5)`.
+
+### 6.2 Fix action
+
+1. **Trước mắt:** tắt cờ sự cố — `python scripts/inject_incident.py --disable`. Trong hệ
+   thống thật, tương đương rollback thay đổi vừa deploy vào lớp retrieval.
+2. **Đặt timeout cho retrieval.** Hiện `retrieve()` không có timeout nên chậm bao nhiêu
+   cũng chịu. Nên đặt ngân sách ~500ms, quá thì trả kết quả rỗng kèm fallback thay vì bắt
+   người dùng chờ.
+3. **Trả lời suy giảm thay vì chờ.** Khi retrieval quá hạn, vẫn gọi LLM với context rỗng
+   và đánh dấu `degraded=true` trên trace — chậm 3s tệ hơn là câu trả lời kém một chút.
+
+### 6.3 Preventive measure
+
+1. **Alert theo p95 từng span, không chỉ p95 toàn request.** Nếu chỉ cảnh báo ở mức
+   request thì mọi nguyên nhân trông giống nhau. Alert riêng cho `retrieve-context`
+   p95 > 500ms sẽ chỉ thẳng thủ phạm ngay từ lúc nổ.
+2. **Siết SLO cho khớp yêu cầu nghiệp vụ — ĐÃ LÀM.** `config/slo.yaml` trước đó đặt
+   `latency_p95_ms: 3000`, cao hơn ngưỡng challenge 2000ms, nên sự cố này gần như
+   **không đốt error budget** — SLO không phản ánh được nỗi đau thật. Đã hạ xuống
+   **2000ms** và đồng bộ luôn `threshold` của panel latency trong `config/dashboard.yaml`
+   để dashboard và SLO không mâu thuẫn. Xem mục 5.1.
+3. **Kiểm tra hồi quy latency trong CI.** Test dựng sẵn để chặn đúng lớp lỗi này đã có:
+   `tests/test_tracing_structure.py::test_slow_retrieval_is_isolated_to_its_own_span`
+   assert `retrieve-context > 2000ms` khi bật `rag_slow`. Đảo assert này thành ngưỡng
+   trần (`< 500ms` ở trạng thái khoẻ) sẽ chặn được regression trước khi lên production.
+4. **Giữ trace có phân cấp.** Việc phát hiện được root cause trong vài phút hoàn toàn nhờ
+   span con. Nếu quay lại trace phẳng, năng lực điều tra này mất theo.
+
+### 6.4 Trả lời câu hỏi phản biện
+
+**Bằng chứng nào khẳng định chắc chắn đó là root cause?** Ba lớp độc lập cùng chỉ về một
+điểm và có quan hệ định lượng: trace cho thấy độ trễ tập trung *chỉ* ở `retrieve-context`
+(+2506ms) trong khi `llm-generate` không đổi (+4ms); log cho thấy request chậm bắt đầu
+đúng 178ms sau sự kiện `incident_enabled`; và độ chênh giữa hai cụm latency (~2502ms) khớp
+đúng con số `sleep(2.5)` trong code. Trùng khớp cả về **vị trí**, **thời điểm** và **độ lớn**
+— chứ không chỉ là tương quan.
+
+**Nếu chỉ có metrics mà không có log chi tiết thì khó ở đâu?** Metrics chỉ nói "p95 tăng
+lên 3.1s". Không biết bước nào chậm, không biết bắt đầu từ lúc nào, không biết request nào
+bị ảnh hưởng. Sẽ phải đoán rồi thử từng khả năng. Quan trọng nhất là mất `correlation_id`
+— thứ duy nhất nối một dòng metric tổng hợp về đúng request cụ thể và đúng dòng log của nó.
+Metrics phát hiện *có* sự cố, nhưng không chứng minh được nguyên nhân.
 
 ## 7. Đóng góp cá nhân
 

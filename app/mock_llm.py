@@ -5,7 +5,6 @@ import time
 from dataclasses import dataclass
 
 from .incidents import STATE
-from .tracing import observe
 
 
 @dataclass
@@ -25,7 +24,9 @@ class FakeLLM:
     def __init__(self, model: str = "claude-sonnet-4-5") -> None:
         self.model = model
 
-    @observe(name="llm_generate", capture_input=False, capture_output=False)
+    # Không đặt @observe ở đây: LabAgent.run đã bọc lời gọi này trong observation
+    # `llm-generate` kiểu GENERATION, có model/token/cost/prompt link — một span
+    # trùng lặp sẽ không mang được các thông tin đó mà chỉ làm nhiễu trace.
     def generate(self, prompt: str) -> FakeResponse:
         time.sleep(0.15)
         input_tokens = max(20, len(prompt) // 4)

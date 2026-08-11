@@ -1,6 +1,6 @@
 # Alert và runbook
 
-Ba alert này đều xuất phát từ triệu chứng quan sát được trên dashboard, không từ
+Bốn alert này đều xuất phát từ triệu chứng quan sát được trên dashboard, không từ
 tên một implementation nội bộ. Nguồn số liệu là `data/logs.jsonl`; dashboard dùng
 cửa sổ lùi 60 phút và tự refresh mỗi 30 giây. `observability-oncall` là vai trò
 trực ca của nhóm Dashboard, SLO & Alert; trước khi nộp, ghi thành viên giữ vai trò
@@ -14,16 +14,19 @@ và correlation ID đã dùng. Không chép message hoặc PII thô vào evidenc
 - Tên: `chat_latency_p95_slo_breach`.
 - Severity: `warning`.
 - SLI/SLO liên quan: `latency_p95_ms` — P95 của `response_sent.latency_ms` phải
-  nhỏ hơn hoặc bằng 3 000 ms; mục tiêu là 99.5% cửa sổ 60 phút đạt ngưỡng.
-- Điều kiện và thời gian duy trì: P95 > 3 000 ms trong cửa sổ 60 phút, kéo dài
+  nhỏ hơn hoặc bằng 2 000 ms; mục tiêu là 99.5% cửa sổ 60 phút đạt ngưỡng.
+- Điều kiện và thời gian duy trì: P95 > 2 000 ms trong cửa sổ 60 phút, kéo dài
   10 phút liên tiếp; chỉ đánh giá khi có ít nhất 20 response.
-- Ảnh hưởng tới người dùng: nhóm request chậm nhất bắt đầu mất trên 3 giây để nhận
+- Ảnh hưởng tới người dùng: nhóm request chậm nhất bắt đầu mất trên 2 giây để nhận
   câu trả lời, dễ gây chờ đợi hoặc retry.
 - Ba bước kiểm tra đầu tiên:
   1. **Metrics:** mở panel **Latency percentiles**, ghi P50/P95/P99, số response và
-     khoảng thời gian 60 phút; xác nhận P95 vượt 3 000 ms thay vì chỉ một request lẻ.
+     khoảng thời gian 60 phút; xác nhận P95 vượt 2 000 ms thay vì chỉ một request lẻ.
   2. **Traces:** mở trace trong đúng thời điểm/cùng `session_id`, so sánh duration của
-     generation, `retrieve` và `llm_generate` để khoanh span bất thường.
+     các span con `retrieve-context`, `resolve-prompt` và `llm-generate` để khoanh span
+     bất thường. Mỗi span dẫn tới một nguyên nhân khác nhau: `retrieve-context` chậm là
+     lớp RAG, `resolve-prompt` chậm là Langfuse không phản hồi (kiểm tra `prompt_source`
+     trên trace), `llm-generate` chậm là phía nhà cung cấp model.
   3. **Logs:** tìm `response_sent` theo `session_id` và mốc thời gian, lấy
      `correlation_id`, rồi đối chiếu chuỗi `request_received` → `response_sent` (hoặc
      `request_failed`) cùng ID đó trong `data/logs.jsonl`.
@@ -78,4 +81,30 @@ và correlation ID đã dùng. Không chép message hoặc PII thô vào evidenc
 - Mitigation tạm thời: nếu trace cho thấy prompt/version mới là nguồn suy giảm, chuyển
   label production về phiên bản đã biết tốt và ghi lại thao tác rollback thật; nếu chưa
   có bằng chứng, giữ alert mở và lấy sample đã redact trước khi thay đổi prompt.
+- Owner: `observability-oncall`.
+
+## Alert 4
+
+- Tên: `chat_cost_budget_breach`.
+- Severity: `warning`.
+- SLI/SLO liên quan: `cost_total_usd` — tổng `response_sent.cost_usd` phải nhỏ hơn
+  hoặc bằng 2.5 USD mỗi cửa sổ 60 phút.
+- Điều kiện và thời gian duy trì: tổng cost > 2.5 USD trong cửa sổ 60 phút, kéo dài
+  15 phút liên tiếp; chỉ đánh giá khi có ít nhất 20 response.
+- Ảnh hưởng tới người dùng: không trực tiếp — người dùng vẫn nhận được câu trả lời.
+  Đây là rủi ro tài chính, nên để `warning`: đánh thức người trực lúc 3h sáng vì hoá
+  đơn là sai ưu tiên.
+- Ba bước kiểm tra đầu tiên:
+  1. **Metrics:** mở panel **Cost over time**, so `avg_cost_usd` và `tokens_out_total`
+     với baseline. Chi phí tăng mà traffic không tăng nghĩa là **mỗi request** đắt lên,
+     không phải do đông người dùng — hai nguyên nhân này cần hai cách xử lý khác nhau.
+  2. **Traces:** sắp trace theo cost giảm dần, mở observation `llm-generate` và đọc
+     `usage_details`. `completion_tokens` phình to là dấu hiệu model trả lời dài bất
+     thường. Kiểm tra luôn `prompt_version` của các trace đắt tiền: nếu chúng dồn vào
+     một version vừa được promote thì thủ phạm là thay đổi prompt.
+  3. **Logs:** lấy `correlation_id` từ trace đắt nhất, đối chiếu `tokens_out` và
+     `cost_usd` trong `data/logs.jsonl`; nhóm theo `feature` để biết phạm vi ảnh hưởng.
+- Mitigation tạm thời: nếu nguyên nhân là prompt mới, rollback label `production` về
+  version trước bằng `python scripts/prompt_versions.py rollback --version <n>` — có
+  hiệu lực ngay, không cần deploy lại. Nếu không phải do prompt, đặt trần `max_tokens`.
 - Owner: `observability-oncall`.

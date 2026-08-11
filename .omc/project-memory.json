@@ -133,6 +133,12 @@
   },
   "hotPaths": [
     {
+      "path": "submission/REPORT.md",
+      "accessCount": 9,
+      "lastAccessed": 1786423060109,
+      "type": "file"
+    },
+    {
       "path": "app/main.py",
       "accessCount": 7,
       "lastAccessed": 1786421113896,
@@ -151,15 +157,21 @@
       "type": "file"
     },
     {
-      "path": "submission/REPORT.md",
+      "path": "app/mock_llm.py",
       "accessCount": 5,
-      "lastAccessed": 1786421721215,
+      "lastAccessed": 1786422444613,
       "type": "file"
     },
     {
       "path": "app/agent.py",
       "accessCount": 4,
       "lastAccessed": 1786420803530,
+      "type": "file"
+    },
+    {
+      "path": "app/mock_rag.py",
+      "accessCount": 4,
+      "lastAccessed": 1786422435344,
       "type": "file"
     },
     {
@@ -241,33 +253,39 @@
       "type": "file"
     },
     {
-      "path": "app/mock_rag.py",
-      "accessCount": 2,
-      "lastAccessed": 1786419403475,
-      "type": "file"
-    },
-    {
-      "path": "app/mock_llm.py",
-      "accessCount": 2,
-      "lastAccessed": 1786419403832,
-      "type": "file"
-    },
-    {
       "path": "app/prompt_management.py",
       "accessCount": 2,
       "lastAccessed": 1786419891474,
       "type": "file"
     },
     {
-      "path": "app/metrics.py",
-      "accessCount": 1,
-      "lastAccessed": 1786418264597,
+      "path": "scripts/inject_incident.py",
+      "accessCount": 2,
+      "lastAccessed": 1786422068330,
       "type": "file"
     },
     {
       "path": "app/challenge.py",
+      "accessCount": 2,
+      "lastAccessed": 1786422069067,
+      "type": "file"
+    },
+    {
+      "path": "docs/alerts.md",
+      "accessCount": 2,
+      "lastAccessed": 1786422964415,
+      "type": "file"
+    },
+    {
+      "path": "config/dashboard.yaml",
+      "accessCount": 2,
+      "lastAccessed": 1786422972369,
+      "type": "file"
+    },
+    {
+      "path": "app/metrics.py",
       "accessCount": 1,
-      "lastAccessed": 1786418272018,
+      "lastAccessed": 1786418264597,
       "type": "file"
     },
     {
@@ -280,12 +298,6 @@
       "path": "scripts/validate_dashboard.py",
       "accessCount": 1,
       "lastAccessed": 1786418276575,
-      "type": "file"
-    },
-    {
-      "path": "scripts/inject_incident.py",
-      "accessCount": 1,
-      "lastAccessed": 1786418277557,
       "type": "file"
     },
     {
@@ -334,6 +346,36 @@
       "path": "tests/test_agent_prompt_trace.py",
       "accessCount": 1,
       "lastAccessed": 1786420620383,
+      "type": "file"
+    },
+    {
+      "path": "config/challenge.json",
+      "accessCount": 1,
+      "lastAccessed": 1786422069488,
+      "type": "file"
+    },
+    {
+      "path": "scripts/prompt_versions.py",
+      "accessCount": 1,
+      "lastAccessed": 1786422710656,
+      "type": "file"
+    },
+    {
+      "path": "submission/evidence/prompt-versioning.md",
+      "accessCount": 1,
+      "lastAccessed": 1786422852012,
+      "type": "file"
+    },
+    {
+      "path": "config/slo.yaml",
+      "accessCount": 1,
+      "lastAccessed": 1786422899128,
+      "type": "file"
+    },
+    {
+      "path": "config/alert_rules.yaml",
+      "accessCount": 1,
+      "lastAccessed": 1786422911147,
       "type": "file"
     }
   ],

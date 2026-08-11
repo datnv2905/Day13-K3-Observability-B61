@@ -12,10 +12,13 @@ dashboard:
       aggregations: [p50, p95, p99]
       query: 'event == "response_sent" | percentile(latency_ms, [50, 95, 99])'
       unit: ms
+      # Khớp với latency_p95_ms trong config/slo.yaml. Ngưỡng cũ 3000 cao hơn
+      # latency_threshold_ms=2000 của challenge nên sự cố rag_slow gần như không
+      # hiện lên là vi phạm.
       threshold:
         aggregation: p95
         operator: lte
-        value: 3000
+        value: 2000
 
     - id: traffic
       title: Request traffic

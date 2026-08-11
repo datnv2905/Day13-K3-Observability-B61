@@ -13,11 +13,11 @@ alerts:
     sli: latency_p95_ms
     dashboard_panel: latency
     source: data/logs.jsonl
-    condition: "P95(response_sent.latency_ms) > 3000 ms trong cửa sổ 60 phút, kéo dài 10 phút liên tiếp."
+    condition: "P95(response_sent.latency_ms) > 2000 ms trong cửa sổ 60 phút, kéo dài 10 phút liên tiếp."
     threshold:
       aggregation: p95
       operator: gt
-      value: 3000
+      value: 2000
       unit: ms
     evaluation_window: 60m
     for: 10m
@@ -60,3 +60,25 @@ alerts:
     minimum_samples: 20
     owner: observability-oncall
     runbook: docs/alerts.md#alert-3
+
+  # SLI cost_total_usd trong config/slo.yaml trước đó chưa có alert nào canh, nên
+  # kịch bản cost_spike sẽ trôi qua im lặng. Severity chỉ là warning: người dùng
+  # không bị ảnh hưởng, đây là rủi ro tài chính — đánh thức người trực lúc 3h sáng
+  # vì hoá đơn là sai ưu tiên.
+  - name: chat_cost_budget_breach
+    severity: warning
+    type: symptom-based
+    sli: cost_total_usd
+    dashboard_panel: cost
+    source: data/logs.jsonl
+    condition: "sum(response_sent.cost_usd) > 2.5 USD trong cửa sổ 60 phút, kéo dài 15 phút liên tiếp."
+    threshold:
+      aggregation: total
+      operator: gt
+      value: 2.5
+      unit: usd
+    evaluation_window: 60m
+    for: 15m
+    minimum_samples: 20
+    owner: observability-oncall
+    runbook: docs/alerts.md#alert-4

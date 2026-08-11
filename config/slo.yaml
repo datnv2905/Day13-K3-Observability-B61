@@ -13,10 +13,15 @@ slis:
     field: latency_ms
     aggregation: p95
     operator: lte
-    objective: 3000
+    objective: 2000
     unit: ms
     target: 99.5
-    target_description: "Ít nhất 99.5% cửa sổ 60 phút có P95 latency <= 3000 ms."
+    target_description: "Ít nhất 99.5% cửa sổ 60 phút có P95 latency <= 2000 ms."
+    # Siết từ 3000 xuống 2000 sau CP3. Challenge đặt latency_threshold_ms=2000,
+    # trong khi sự cố rag_slow đo được P95 = 3095 ms. Với ngưỡng cũ 3000 ms thì
+    # sự cố chỉ vừa chớm vượt và gần như không đốt error budget — SLO khi đó
+    # không phản ánh được nỗi đau thật của người dùng.
+    # Xem submission/evidence/cp3-challenge-investigation.txt.
 
   error_rate_pct:
     description: Tỷ lệ request thất bại trên toàn bộ request nhận vào
