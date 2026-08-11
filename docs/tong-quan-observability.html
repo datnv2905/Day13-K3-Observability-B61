@@ -1,0 +1,1181 @@
+<title>Day 13 — Observability cho hệ thống AI: giải thích từ đầu đến cuối</title>
+
+<style>
+  /* ============ TOKENS: light (bare :root = complete palette) ============ */
+  :root {
+    --paper:        #EEF1F5;
+    --surface:      #FFFFFF;
+    --surface-sunk: #E4E9EF;
+    --ink:          #131A22;
+    --ink-soft:     #4A5A6A;
+    --ink-faint:    #7A8896;
+    --rule:         #CBD4DE;
+    --rule-soft:    #DFE5EC;
+
+    --accent:       #0B6E8F;
+    --accent-deep:  #075063;
+    --accent-wash:  #DDEDF3;
+
+    --ok:           #1F6B4A;
+    --ok-wash:      #DCEDE3;
+    --warn:         #9A5B12;
+    --warn-wash:    #F6E8D5;
+    --crit:         #9E2C2C;
+    --crit-wash:    #F5DEDE;
+
+    --shadow:       0 1px 2px rgba(19,26,34,.06), 0 6px 20px -12px rgba(19,26,34,.24);
+
+    --font-display: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --font-body:    "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --font-mono:    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --measure: 68ch;
+    --pad-x: clamp(1.1rem, 4vw, 2.5rem);
+  }
+
+  /* ============ TOKENS: dark via system (un-stamped document) ============ */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:        #0D1218;
+      --surface:      #151D26;
+      --surface-sunk: #1D2732;
+      --ink:          #DEE5EC;
+      --ink-soft:     #A3B1BF;
+      --ink-faint:    #74838F;
+      --rule:         #2C3844;
+      --rule-soft:    #222D38;
+
+      --accent:       #55B9D9;
+      --accent-deep:  #8CD3EC;
+      --accent-wash:  #10303C;
+
+      --ok:           #62BE90;
+      --ok-wash:      #133026;
+      --warn:         #D6A159;
+      --warn-wash:    #33260F;
+      --crit:         #E08585;
+      --crit-wash:    #3A1D1D;
+
+      --shadow:       0 1px 2px rgba(0,0,0,.5), 0 8px 26px -14px rgba(0,0,0,.8);
+    }
+  }
+
+  /* ============ TOKENS: dark via explicit toggle ============ */
+  :root[data-theme="dark"] {
+    --paper:        #0D1218;
+    --surface:      #151D26;
+    --surface-sunk: #1D2732;
+    --ink:          #DEE5EC;
+    --ink-soft:     #A3B1BF;
+    --ink-faint:    #74838F;
+    --rule:         #2C3844;
+    --rule-soft:    #222D38;
+
+    --accent:       #55B9D9;
+    --accent-deep:  #8CD3EC;
+    --accent-wash:  #10303C;
+
+    --ok:           #62BE90;
+    --ok-wash:      #133026;
+    --warn:         #D6A159;
+    --warn-wash:    #33260F;
+    --crit:         #E08585;
+    --crit-wash:    #3A1D1D;
+
+    --shadow:       0 1px 2px rgba(0,0,0,.5), 0 8px 26px -14px rgba(0,0,0,.8);
+  }
+
+  /* ============ BASE ============ */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.68;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 78rem;
+    margin: 0 auto;
+    padding: 0 var(--pad-x) 6rem;
+  }
+
+  /* ============ MASTHEAD ============ */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 3.5rem 0 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+  .masthead h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5.2vw, 3.35rem);
+    line-height: 1.06;
+    letter-spacing: -.028em;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    max-width: 22ch;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: clamp(1.02rem, 2vw, 1.2rem);
+    color: var(--ink-soft);
+    max-width: var(--measure);
+    margin: 0 0 1.75rem;
+  }
+  .masthead-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem .5rem;
+    font-family: var(--font-mono);
+    font-size: .74rem;
+    letter-spacing: .03em;
+  }
+  .masthead-meta span {
+    background: var(--surface-sunk);
+    border: 1px solid var(--rule-soft);
+    color: var(--ink-soft);
+    padding: .3rem .6rem;
+    border-radius: 2px;
+  }
+
+  /* ============ READING COLUMN ============ */
+  .col { max-width: var(--measure); }
+
+  section { margin-bottom: 4rem; scroll-margin-top: 1.5rem; }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    line-height: 1.18;
+    letter-spacing: -.019em;
+    font-weight: 680;
+    margin: 0 0 1.25rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--rule);
+    max-width: 30ch;
+    text-wrap: balance;
+  }
+  h2 .num {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    font-weight: 500;
+    letter-spacing: .16em;
+    color: var(--accent);
+    margin-bottom: .5rem;
+  }
+  h3 {
+    font-family: var(--font-display);
+    font-size: 1.06rem;
+    font-weight: 660;
+    letter-spacing: -.008em;
+    margin: 2.25rem 0 .7rem;
+    max-width: 40ch;
+  }
+
+  p { margin: 0 0 1.1rem; max-width: var(--measure); }
+  .col > ul, .col > ol, section > ul, section > ol { max-width: var(--measure); padding-left: 1.15rem; margin: 0 0 1.2rem; }
+  li { margin-bottom: .5rem; }
+
+  strong { font-weight: 700; color: var(--ink); }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: .845em;
+    background: var(--surface-sunk);
+    border: 1px solid var(--rule-soft);
+    padding: .09em .34em;
+    border-radius: 2px;
+    word-break: break-word;
+  }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: .18em; }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* ============ CALLOUTS ============ */
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-wash);
+    padding: 1rem 1.15rem;
+    margin: 0 0 1.4rem;
+    max-width: var(--measure);
+    font-size: .95rem;
+  }
+  .note > :last-child { margin-bottom: 0; }
+  .note .tag {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: .67rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    margin-bottom: .45rem;
+  }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-wash); }
+  .note.warn .tag { color: var(--warn); }
+
+  /* ============ FIGURES ============ */
+  figure {
+    margin: 2rem 0 2.25rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .figbody { overflow-x: auto; padding: 1.5rem; }
+  figure svg {
+    display: block;
+    width: 100%;
+    min-width: 560px;
+    height: auto;
+    color: var(--ink);
+  }
+  figcaption {
+    border-top: 1px solid var(--rule-soft);
+    background: var(--surface-sunk);
+    padding: .8rem 1.15rem;
+    font-size: .87rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  figcaption b {
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-right: .5rem;
+  }
+
+  /* SVG helper classes */
+  .s-box   { fill: var(--surface); stroke: currentColor; stroke-width: 1.4; }
+  .s-sunk  { fill: var(--surface-sunk); stroke: var(--rule); stroke-width: 1.2; }
+  .s-acc   { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 1.8; }
+  .s-crit  { fill: var(--crit-wash); stroke: var(--crit); stroke-width: 1.6; }
+  .s-ok    { fill: var(--ok-wash); stroke: var(--ok); stroke-width: 1.6; }
+  .s-t     { fill: var(--ink); font-family: var(--font-display); font-size: 13px; font-weight: 600; }
+  .s-m     { fill: var(--ink); font-family: var(--font-mono); font-size: 11.5px; }
+  .s-sub   { fill: var(--ink-soft); font-family: var(--font-mono); font-size: 10.5px; }
+  .s-acct  { fill: var(--accent); font-family: var(--font-mono); font-size: 11px; }
+  .s-critt { fill: var(--crit); font-family: var(--font-mono); font-size: 11px; }
+  .s-line  { stroke: currentColor; stroke-width: 1.4; fill: none; }
+  .s-dash  { stroke: var(--ink-faint); stroke-width: 1.2; fill: none; stroke-dasharray: 4 3; }
+  .s-accln { stroke: var(--accent); stroke-width: 1.8; fill: none; }
+
+  /* ============ TABLES ============ */
+  .tablewrap {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    margin: 0 0 1.6rem;
+    box-shadow: var(--shadow);
+  }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+  th, td {
+    text-align: left;
+    padding: .62rem .85rem;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--font-display);
+    font-size: .72rem;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    font-weight: 640;
+    color: var(--ink-soft);
+    background: var(--surface-sunk);
+    white-space: nowrap;
+  }
+  td.n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ============ PILLS ============ */
+  .pill {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: .69rem;
+    letter-spacing: .05em;
+    padding: .12rem .48rem;
+    border-radius: 999px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .pill.done { color: var(--ok);   border-color: var(--ok);   background: var(--ok-wash); }
+  .pill.todo { color: var(--warn); border-color: var(--warn); background: var(--warn-wash); }
+  .pill.na   { color: var(--ink-faint); border-color: var(--rule); background: var(--surface-sunk); }
+
+  /* ============ CODE BLOCK ============ */
+  pre {
+    font-family: var(--font-mono);
+    font-size: .78rem;
+    line-height: 1.62;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    margin: 0 0 1.4rem;
+    box-shadow: var(--shadow);
+  }
+  pre .c { color: var(--ink-faint); }
+  pre .r { color: var(--crit); }
+  pre .g { color: var(--ok); }
+  pre .a { color: var(--accent); }
+
+  /* ============ DEFINITION GRID ============ */
+  .defs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 0 0 1.5rem;
+  }
+  .defs div { background: var(--surface); padding: .95rem 1.05rem; }
+  .defs dt {
+    font-family: var(--font-mono);
+    font-size: .8rem;
+    color: var(--accent);
+    margin-bottom: .3rem;
+  }
+  .defs dd { margin: 0; font-size: .9rem; color: var(--ink-soft); line-height: 1.55; }
+
+  /* ============ TIMELINE ============ */
+  .timeline { list-style: none; padding: 0; margin: 0 0 1.5rem; max-width: var(--measure); }
+  .timeline li {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 1rem;
+    padding: .95rem 0;
+    border-top: 1px solid var(--rule-soft);
+    margin: 0;
+  }
+  .timeline li:first-child { border-top: 1px solid var(--rule); }
+  .tl-time {
+    font-family: var(--font-mono);
+    font-size: .76rem;
+    color: var(--accent);
+    padding-top: .18rem;
+    white-space: nowrap;
+  }
+  .tl-body h4 {
+    font-family: var(--font-display);
+    font-size: .98rem;
+    font-weight: 650;
+    margin: 0 0 .3rem;
+  }
+  .tl-body p { font-size: .9rem; color: var(--ink-soft); margin: 0 0 .35rem; max-width: none; }
+  .tl-body p:last-child { margin-bottom: 0; }
+
+  /* ============ FOOTER ============ */
+  .foot {
+    border-top: 2px solid var(--ink);
+    padding-top: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: .76rem;
+    color: var(--ink-faint);
+    line-height: 1.7;
+    max-width: var(--measure);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .timeline li { grid-template-columns: 1fr; gap: .25rem; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Day 13 · Cohort K3 · Nhóm B61</p>
+    <h1>Làm sao biết một hệ thống AI đang hỏng ở đâu?</h1>
+    <p class="standfirst">
+      Tài liệu này giải thích toàn bộ project Day&nbsp;13 từ đầu đến cuối: mục tiêu là gì, code chạy ra sao,
+      và vì sao từng mảnh lại tồn tại. Viết cho người <em>chưa từng</em> tiếp xúc với observability.
+    </p>
+    <div class="masthead-meta">
+      <span>FastAPI + structlog + Langfuse</span>
+      <span>Fake LLM — không tốn API key</span>
+      <span>Lab 4 giờ</span>
+    </div>
+  </header>
+
+  <!-- ================= 1 ================= -->
+  <section id="van-de">
+    <h2><span class="num">Phần 01 — Bối cảnh</span>Vấn đề: phần mềm AI là một chiếc hộp đen</h2>
+
+    <p>
+      Với phần mềm thông thường, khi có lỗi bạn đọc stack trace và biết dòng nào sai. Hệ thống AI thì khác.
+      Nó hiếm khi <em>crash</em>. Nó chỉ đơn giản là… chậm đi, đắt lên, hoặc trả lời kém hơn hôm qua —
+      mà không có dòng lỗi nào cả.
+    </p>
+
+    <p>Ba câu hỏi mà một team vận hành hệ thống AI phải trả lời được, thường là dưới áp lực:</p>
+
+    <ul>
+      <li><strong>Hệ thống có đang khỏe không?</strong> Chậm hơn bình thường bao nhiêu? Bao nhiêu phần trăm request lỗi? Hôm nay tốn bao nhiêu tiền?</li>
+      <li><strong>Nếu đang hỏng thì hỏng ở khâu nào?</strong> Khâu tìm tài liệu, khâu gọi model, hay khâu nào khác?</li>
+      <li><strong>Chứng minh đi.</strong> Bằng chứng cụ thể nào cho thấy đó là nguyên nhân, chứ không phải phỏng đoán?</li>
+    </ul>
+
+    <p>
+      <strong>Observability</strong> — khả năng quan sát — là năng lực trả lời ba câu hỏi đó
+      <em>mà không cần sửa code hay deploy lại</em>. Bạn trả lời được vì hệ thống đã tự kể lại những gì nó làm,
+      ngay từ lúc nó đang làm.
+    </p>
+
+    <div class="note">
+      <span class="tag">Ý chính của cả lab</span>
+      <p>
+        Lab này không dạy bạn viết AI tốt hơn. Nó dạy bạn <strong>chứng minh</strong> điều gì đã xảy ra với AI của bạn.
+        Mọi kết luận trong bài nộp đều phải kèm một trace ID, một dòng log, hoặc một con số cụ thể.
+        Đoán mò không được tính điểm.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= 2 ================= -->
+  <section id="ba-tru-cot">
+    <h2><span class="num">Phần 02 — Khái niệm nền</span>Ba loại tín hiệu, ba câu hỏi khác nhau</h2>
+
+    <p>
+      Người mới thường nghĩ log, metrics và trace là ba cách ghi lại cùng một thứ. Không phải.
+      Mỗi loại trả lời một câu hỏi <em>khác nhau</em>, và chúng chỉ mạnh khi dùng theo đúng thứ tự.
+    </p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 860 268" role="img"
+             aria-label="Quy trình điều tra ba bước: Metrics phát hiện có gì đó sai và khi nào, Traces khoanh vùng bước nào chậm, Logs giải thích vì sao. Phạm vi thu hẹp dần từ toàn hệ thống xuống một request cụ thể.">
+          <defs>
+            <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <!-- stage 1 -->
+          <rect class="s-box" x="18" y="42" width="228" height="112" rx="3"/>
+          <text class="s-t"   x="34" y="70">METRICS</text>
+          <text class="s-sub" x="34" y="92">Con số tổng hợp theo thời gian</text>
+          <text class="s-acct" x="34" y="118">Có gì đó sai không?</text>
+          <text class="s-acct" x="34" y="136">Bắt đầu từ lúc nào?</text>
+          <text class="s-sub" x="34" y="180">phạm vi: toàn hệ thống</text>
+          <text class="s-sub" x="34" y="196">ví dụ: p95 = 2650ms</text>
+
+          <!-- stage 2 -->
+          <rect class="s-box" x="316" y="42" width="228" height="112" rx="3"/>
+          <text class="s-t"   x="332" y="70">TRACES</text>
+          <text class="s-sub" x="332" y="92">Bản đồ thời gian của 1 request</text>
+          <text class="s-acct" x="332" y="118">Chậm ở BƯỚC nào?</text>
+          <text class="s-acct" x="332" y="136">Bước nào ăn hết thời gian?</text>
+          <text class="s-sub" x="332" y="180">phạm vi: một request</text>
+          <text class="s-sub" x="332" y="196">ví dụ: span retrieve = 2.5s</text>
+
+          <!-- stage 3 -->
+          <rect class="s-box" x="614" y="42" width="228" height="112" rx="3"/>
+          <text class="s-t"   x="630" y="70">LOGS</text>
+          <text class="s-sub" x="630" y="92">Sự kiện rời rạc, có ngữ cảnh</text>
+          <text class="s-acct" x="630" y="118">VÌ SAO nó chậm?</text>
+          <text class="s-acct" x="630" y="136">Ngữ cảnh cụ thể là gì?</text>
+          <text class="s-sub" x="630" y="180">phạm vi: một dòng sự kiện</text>
+          <text class="s-sub" x="630" y="196">ví dụ: feature=refund</text>
+
+          <!-- arrows -->
+          <line class="s-accln" x1="252" y1="98" x2="308" y2="98" marker-end="url(#ar1)" style="color:var(--accent)"/>
+          <text class="s-acct" x="252" y="86" style="font-size:10px">khoanh giờ</text>
+          <line class="s-accln" x1="550" y1="98" x2="606" y2="98" marker-end="url(#ar1)" style="color:var(--accent)"/>
+          <text class="s-acct" x="550" y="86" style="font-size:10px">khoanh span</text>
+
+          <!-- funnel bar -->
+          <line class="s-dash" x1="18" y1="228" x2="842" y2="228"/>
+          <text class="s-sub" x="18"  y="248">rộng — nhiều request</text>
+          <text class="s-sub" x="842" y="248" text-anchor="end">hẹp — một dòng bằng chứng</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>Hình 1</b>
+        Ba loại tín hiệu là ba bước nối tiếp của một cuộc điều tra, không phải ba lựa chọn thay thế nhau.
+        Metrics nói <em>có</em> vấn đề, traces nói <em>ở đâu</em>, logs nói <em>vì sao</em>. Bỏ qua bước nào cũng dẫn tới đoán mò.
+      </figcaption>
+    </figure>
+
+    <p>
+      Đây chính là luồng <code>Metrics → Traces → Logs</code> mà bài lab bắt buộc bạn phải diễn lại được trong phần demo.
+      Toàn bộ phần còn lại của project tồn tại để làm cho ba bước này khả thi.
+    </p>
+  </section>
+
+  <!-- ================= 3 ================= -->
+  <section id="he-thong">
+    <h2><span class="num">Phần 03 — Đối tượng</span>Hệ thống bạn sẽ quan sát</h2>
+
+    <p>
+      Project cho sẵn một API nhỏ giả lập một chatbot có tra cứu tài liệu (RAG). Nó chạy được nhưng
+      <em>gần như không quan sát được gì</em> — và nhiệm vụ của bạn là thay đổi điều đó.
+    </p>
+
+    <p>Có một chi tiết quan trọng cần biết ngay: <strong>LLM ở đây là giả</strong>.</p>
+
+    <pre><span class="c"># app/mock_llm.py — không gọi API thật, chỉ ngủ 0.15 giây</span>
+def generate(self, prompt: str) -> FakeResponse:
+    time.sleep(0.15)
+    input_tokens  = max(20, len(prompt) // 4)
+    output_tokens = random.randint(80, 180)
+    if STATE[<span class="r">"cost_spike"</span>]:
+        output_tokens *= 4        <span class="c"># sự cố giả: token tăng gấp 4</span></pre>
+
+    <p>
+      LLM giả nghĩa là bạn không tốn tiền API, và quan trọng hơn: <strong>độ trễ trở nên đoán trước được</strong>.
+      Mỗi request tốn đúng khoảng 150ms. Nhờ vậy khi ta cố tình gây sự cố, con số thay đổi sẽ rõ ràng
+      chứ không lẫn vào nhiễu.
+    </p>
+
+    <h3>Các file và vai trò của chúng</h3>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>File</th><th>Chịu trách nhiệm</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="n">app/middleware.py</td><td>Gắn <strong>correlation ID</strong> cho mỗi request — sợi chỉ đỏ xuyên suốt mọi dòng log</td></tr>
+          <tr><td class="n">app/main.py</td><td>Ba endpoint: <code>/chat</code>, <code>/health</code>, <code>/metrics</code>, cộng công tắc bật/tắt sự cố</td></tr>
+          <tr><td class="n">app/agent.py</td><td>Bộ não: tra tài liệu → lấy prompt → gọi LLM → tính cost và điểm chất lượng</td></tr>
+          <tr><td class="n">app/logging_config.py</td><td>Dây chuyền xử lý log; quyết định PII bị xóa ở <em>bước nào</em></td></tr>
+          <tr><td class="n">app/pii.py</td><td>Sáu biểu thức chính quy bắt email, số điện thoại, CCCD, thẻ, hộ chiếu, địa chỉ</td></tr>
+          <tr><td class="n">app/metrics.py</td><td>Đếm và tính percentile trong bộ nhớ</td></tr>
+          <tr><td class="n">app/prompt_management.py</td><td>Lấy prompt từ Langfuse, có đường lui an toàn khi mất mạng</td></tr>
+          <tr><td class="n">app/mock_rag.py</td><td>Kho tài liệu giả — cũng là nơi cài sự cố <code>rag_slow</code></td></tr>
+          <tr><td class="n">app/incidents.py</td><td>Ba công tắc sự cố: <code>rag_slow</code>, <code>tool_fail</code>, <code>cost_spike</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= 4 ================= -->
+  <section id="vong-doi">
+    <h2><span class="num">Phần 04 — Sơ đồ chính</span>Vòng đời của một request, từ đầu đến cuối</h2>
+
+    <p>
+      Đây là sơ đồ quan trọng nhất của tài liệu. Nó theo chân <em>một</em> request đi qua toàn bộ hệ thống
+      và chỉ ra chính xác nơi mỗi tín hiệu quan sát được sinh ra.
+    </p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 880 660" role="img"
+             aria-label="Vòng đời một request POST /chat: middleware sinh correlation ID, handler gắn ngữ cảnh và ghi log request_received, LabAgent lần lượt gọi retrieve, resolve_prompt và llm.generate, sau đó ghi log response_sent. Ba đích đến của tín hiệu là file logs.jsonl, metrics trong bộ nhớ, và Langfuse.">
+          <defs>
+            <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="ar2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+            </marker>
+          </defs>
+
+          <!-- column headers -->
+          <text class="s-sub" x="40"  y="20">LUỒNG XỬ LÝ</text>
+          <text class="s-sub" x="580" y="20">TÍN HIỆU ĐI RA</text>
+          <line class="s-dash" x1="545" y1="8" x2="545" y2="640"/>
+
+          <!-- A: client -->
+          <rect class="s-sunk" x="40" y="32" width="330" height="40" rx="3"/>
+          <text class="s-t" x="56" y="57">Client — POST /chat</text>
+
+          <line class="s-line" x1="205" y1="72" x2="205" y2="94" marker-end="url(#ar2)"/>
+
+          <!-- B: middleware -->
+          <rect class="s-box" x="40" y="94" width="330" height="66" rx="3"/>
+          <text class="s-t"   x="56" y="118">1 · CorrelationIdMiddleware</text>
+          <text class="s-sub" x="56" y="138">clear_contextvars() → sinh req-a1b2c3d4</text>
+          <text class="s-sub" x="56" y="152">bind vào context của request</text>
+
+          <line class="s-line" x1="205" y1="160" x2="205" y2="182" marker-end="url(#ar2)"/>
+
+          <!-- C: handler -->
+          <rect class="s-box" x="40" y="182" width="330" height="80" rx="3"/>
+          <text class="s-t"   x="56" y="206">2 · /chat handler</text>
+          <text class="s-sub" x="56" y="226">bind: user_id_hash, session_id,</text>
+          <text class="s-sub" x="56" y="240">feature, model, env</text>
+          <text class="s-acct" x="56" y="256">ghi log: request_received</text>
+
+          <line class="s-line" x1="205" y1="262" x2="205" y2="284" marker-end="url(#ar2)"/>
+
+          <!-- D: agent container -->
+          <rect class="s-acc" x="40" y="284" width="330" height="230" rx="3"/>
+          <text class="s-t"   x="56" y="308">3 · LabAgent.run()</text>
+          <text class="s-sub" x="56" y="326">bọc bởi @observe → tạo span trên Langfuse</text>
+
+          <!-- timer bracket -->
+          <path class="s-accln" d="M 30 340 L 22 340 L 22 486 L 30 486"/>
+          <text class="s-acct" x="18" y="418" text-anchor="middle" transform="rotate(-90 18 418)">latency_ms đo ở đây</text>
+
+          <!-- D1 -->
+          <rect class="s-crit" x="58" y="340" width="294" height="46" rx="2"/>
+          <text class="s-m"     x="72" y="360">retrieve(message)</text>
+          <text class="s-critt" x="72" y="377">rag_slow bật → sleep(2.5s) ngay tại đây</text>
+
+          <!-- D2 -->
+          <rect class="s-sunk" x="58" y="396" width="294" height="42" rx="2"/>
+          <text class="s-m"   x="72" y="416">resolve_prompt(...)</text>
+          <text class="s-sub" x="72" y="431">langfuse / local-fallback / local</text>
+
+          <!-- D3 -->
+          <rect class="s-sunk" x="58" y="448" width="294" height="42" rx="2"/>
+          <text class="s-m"   x="72" y="468">llm.generate()</text>
+          <text class="s-sub" x="72" y="483">sleep(0.15s) — luôn cố định</text>
+
+          <line class="s-line" x1="205" y1="514" x2="205" y2="536" marker-end="url(#ar2)"/>
+
+          <!-- E: response -->
+          <rect class="s-box" x="40" y="536" width="330" height="80" rx="3"/>
+          <text class="s-t"   x="56" y="560">4 · Trả kết quả</text>
+          <text class="s-acct" x="56" y="580">ghi log: response_sent</text>
+          <text class="s-sub" x="56" y="598">header x-request-id = correlation_id</text>
+
+          <!-- RIGHT: destinations -->
+          <rect class="s-box" x="580" y="182" width="272" height="86" rx="3"/>
+          <text class="s-t"   x="596" y="206">data/logs.jsonl</text>
+          <text class="s-sub" x="596" y="226">1 dòng JSON cho mỗi sự kiện</text>
+          <text class="s-sub" x="596" y="240">là NGUỒN CHUẨN của dashboard</text>
+          <text class="s-sub" x="596" y="258">21 dòng = 1 + 10 + 10</text>
+
+          <rect class="s-box" x="580" y="330" width="272" height="70" rx="3"/>
+          <text class="s-t"   x="596" y="354">Langfuse</text>
+          <text class="s-sub" x="596" y="373">trace + generation + prompt version</text>
+          <text class="s-sub" x="596" y="389">chỉ hoạt động khi có API key</text>
+
+          <rect class="s-box" x="580" y="430" width="272" height="70" rx="3"/>
+          <text class="s-t"   x="596" y="454">metrics (trong RAM)</text>
+          <text class="s-sub" x="596" y="473">record_request() → /metrics</text>
+          <text class="s-sub" x="596" y="489">mất sạch khi restart</text>
+
+          <!-- arrows to destinations -->
+          <path class="s-accln" d="M 370 240 L 470 240 L 470 214 L 574 214" marker-end="url(#ar2a)"/>
+          <path class="s-accln" d="M 370 580 L 500 580 L 500 250 L 574 250" marker-end="url(#ar2a)"/>
+          <path class="s-line"  d="M 370 360 L 574 360" marker-end="url(#ar2)"/>
+          <path class="s-line"  d="M 370 500 L 450 500 L 450 462 L 574 462" marker-end="url(#ar2)"/>
+        </svg>
+      </div>
+      <figcaption>
+        <b>Hình 2</b>
+        Một request sinh ra <em>hai</em> dòng log (<code>request_received</code> và <code>response_sent</code>) cùng mang một
+        correlation ID. Đồng hồ <code>latency_ms</code> chỉ bao quanh phần thân của agent — nên bất cứ thứ gì chậm bên trong
+        ba bước đó đều hiện lên trong metrics.
+      </figcaption>
+    </figure>
+
+    <div class="note">
+      <span class="tag">Vì sao correlation ID là mấu chốt</span>
+      <p>
+        Trên máy chủ thật, hàng nghìn request chạy xen kẽ và log của chúng trộn lẫn vào nhau.
+        Correlation ID là mã ngẫu nhiên dạng <code>req-a1b2c3d4</code> được gắn vào <em>mọi</em> dòng log của cùng một request.
+        Không có nó, file log chỉ là một đống câu rời rạc. Có nó, bạn lọc một mã và đọc lại được đúng câu chuyện của
+        một người dùng cụ thể.
+      </p>
+    </div>
+
+    <p>
+      Middleware cũng gọi <code>clear_contextvars()</code> ở ngay dòng đầu. Chi tiết nhỏ này ngăn ngữ cảnh của
+      request trước rò rỉ sang request sau — nếu thiếu, log của người dùng A có thể mang <code>session_id</code> của người dùng B.
+    </p>
+  </section>
+
+  <!-- ================= 5 ================= -->
+  <section id="log-pipeline">
+    <h2><span class="num">Phần 05 — Cơ chế</span>Log được sinh ra thế nào, và vì sao thứ tự quyết định tất cả</h2>
+
+    <p>
+      Log ở đây không phải <code>print()</code>. Nó đi qua một dây chuyền các bộ xử lý, mỗi bộ thêm hoặc biến đổi một thứ.
+      Thứ tự các bộ xử lý này là điểm dễ sai nhất của cả bài lab.
+    </p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 1060 250" role="img"
+             aria-label="Dây chuyền xử lý log của structlog gồm bảy bước theo thứ tự: gộp ngữ cảnh, thêm mức log, thêm dấu thời gian, xóa PII, xử lý ngoại lệ, ghi ra file JSONL, và cuối cùng render ra màn hình. Bước xóa PII nằm trước bước ghi file.">
+          <defs>
+            <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <text class="s-sub" x="14" y="20">log.info("response_sent", ...)</text>
+
+          <!-- steps -->
+          <rect class="s-sunk" x="14"  y="34" width="122" height="56" rx="3"/>
+          <text class="s-m"   x="24" y="56">merge_</text>
+          <text class="s-m"   x="24" y="72">contextvars</text>
+          <text class="s-sub" x="24" y="106">+ correlation_id</text>
+
+          <rect class="s-sunk" x="152" y="34" width="106" height="56" rx="3"/>
+          <text class="s-m"   x="162" y="56">add_log_</text>
+          <text class="s-m"   x="162" y="72">level</text>
+          <text class="s-sub" x="162" y="106">+ level</text>
+
+          <rect class="s-sunk" x="274" y="34" width="106" height="56" rx="3"/>
+          <text class="s-m"   x="284" y="56">Time</text>
+          <text class="s-m"   x="284" y="72">Stamper</text>
+          <text class="s-sub" x="284" y="106">+ ts</text>
+
+          <!-- the important one -->
+          <rect class="s-acc" x="396" y="28" width="130" height="68" rx="3"/>
+          <text class="s-t"    x="408" y="52" style="fill:var(--accent)">scrub_event</text>
+          <text class="s-acct" x="408" y="70">XÓA PII</text>
+          <text class="s-acct" x="408" y="86">tại đây</text>
+          <text class="s-acct" x="408" y="118">bước bạn phải tự bật</text>
+
+          <rect class="s-sunk" x="542" y="34" width="106" height="56" rx="3"/>
+          <text class="s-m"   x="552" y="56">format_</text>
+          <text class="s-m"   x="552" y="72">exc_info</text>
+          <text class="s-sub" x="552" y="106">+ traceback</text>
+
+          <rect class="s-box" x="664" y="34" width="140" height="56" rx="3"/>
+          <text class="s-t"   x="676" y="56">JsonlFile</text>
+          <text class="s-t"   x="676" y="72">Processor</text>
+          <text class="s-sub" x="676" y="106">GHI XUỐNG FILE</text>
+
+          <rect class="s-sunk" x="820" y="34" width="120" height="56" rx="3"/>
+          <text class="s-m"   x="830" y="56">JSON</text>
+          <text class="s-m"   x="830" y="72">Renderer</text>
+          <text class="s-sub" x="830" y="106">→ stdout</text>
+
+          <!-- connecting arrows -->
+          <line class="s-line" x1="136" y1="62" x2="148" y2="62" marker-end="url(#ar3)"/>
+          <line class="s-line" x1="258" y1="62" x2="270" y2="62" marker-end="url(#ar3)"/>
+          <line class="s-line" x1="380" y1="62" x2="392" y2="62" marker-end="url(#ar3)"/>
+          <line class="s-line" x1="526" y1="62" x2="538" y2="62" marker-end="url(#ar3)"/>
+          <line class="s-line" x1="648" y1="62" x2="660" y2="62" marker-end="url(#ar3)"/>
+          <line class="s-line" x1="804" y1="62" x2="816" y2="62" marker-end="url(#ar3)"/>
+
+          <!-- file -->
+          <line class="s-line" x1="734" y1="90" x2="734" y2="164" marker-end="url(#ar3)"/>
+          <rect class="s-box" x="646" y="164" width="176" height="42" rx="3"/>
+          <text class="s-t" x="660" y="190">data/logs.jsonl</text>
+
+          <!-- the guard rail -->
+          <path class="s-accln" d="M 461 128 L 461 148 L 734 148" stroke-dasharray="5 4"/>
+          <text class="s-acct" x="470" y="166">PII phải chết TRƯỚC khi chạm ổ đĩa</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>Hình 3</b>
+        <code>scrub_event</code> đứng ở vị trí thứ tư, trước <code>JsonlFileProcessor</code>. Nếu đặt nó sau,
+        dữ liệu cá nhân đã kịp được ghi xuống ổ đĩa rồi mới bị xóa khỏi bản in ra màn hình — coi như thất bại.
+      </figcaption>
+    </figure>
+
+    <h3>Kết quả thật, lấy từ log của lần chạy vừa rồi</h3>
+
+    <p>Ba trong mười câu hỏi mẫu có chứa dữ liệu cá nhân. Đây là những gì thực sự được ghi xuống file:</p>
+
+    <pre><span class="c"># trích từ data/logs.jsonl sau khi chạy scripts/load_test.py</span>
+req-fa533792 | What is your refund policy? My email is <span class="g">[REDACTED_EMAIL]</span>
+req-ae50b040 | Here is my phone <span class="g">[REDACTED_PHONE_VN]</span>, what should be logged?
+req-1ea97f4c | What is the policy for PII and credit card <span class="g">[REDACTED_CREDIT_CARD]</span>?</pre>
+
+    <p>
+      Chú ý <code>user_id</code> cũng không bao giờ xuất hiện nguyên văn. Nó được băm bằng SHA-256 rồi cắt lấy 12 ký tự
+      (<code>u01</code> → <code>2055254ee30a</code>). Cùng một người luôn cho ra cùng một mã, nên bạn vẫn nhóm được request
+      theo người dùng để phân tích — nhưng không thể lần ngược ra danh tính từ log.
+    </p>
+
+    <div class="note warn">
+      <span class="tag">Giới hạn thật của cách cài đặt hiện tại</span>
+      <p>
+        <code>scrub_event</code> chỉ quét các chuỗi ở <em>tầng ngoài cùng</em> của <code>payload</code>.
+        Tôi đã kiểm chứng: nếu bạn nhét một dict lồng bên trong, ví dụ <code>payload.nested.b</code>,
+        thì email nằm trong đó <strong>không</strong> bị xóa. Hiện tại vô hại vì code chỉ ghi chuỗi phẳng —
+        nhưng nếu nhóm bạn thêm field log mới chứa văn bản người dùng, hãy nhớ giới hạn này.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= 6 ================= -->
+  <section id="metrics">
+    <h2><span class="num">Phần 06 — Đo lường</span>Vì sao không ai nhìn độ trễ trung bình</h2>
+
+    <p>
+      Giả sử 99 request trả lời trong 100ms và 1 request mất 10 giây. Trung bình là 199ms — trông rất ổn.
+      Nhưng có một người dùng thật vừa phải chờ 10 giây. Số trung bình đã che mất họ.
+    </p>
+
+    <p>
+      <strong>Percentile</strong> giải quyết chuyện đó. <code>p95 = 2650ms</code> nghĩa là:
+      95% request nhanh hơn 2650ms, và 5% chậm hơn. Nó mô tả trải nghiệm của nhóm người dùng
+      <em>kém may mắn nhất</em> — nhóm sẽ phàn nàn trước tiên.
+    </p>
+
+    <div class="note">
+      <span class="tag">Đã kiểm chứng bằng cách chạy thử</span>
+      <p>
+        Với 10 mẫu, hàm <code>percentile()</code> trong <code>app/metrics.py</code> trả về đúng
+        <em>giá trị lớn nhất</em> cho cả p95 lẫn p99. Nghĩa là chỉ cần <strong>một</strong> request chậm bất thường
+        cũng đủ kéo cả hai con số lên. Với tập mẫu nhỏ của lab thì đây là hành vi có lợi — sự cố hiện lên ngay.
+      </p>
+    </div>
+
+    <h3>Baseline đo được — hệ thống khỏe mạnh</h3>
+
+    <p>Số liệu thật từ <code>/metrics</code> sau khi chạy 10 request lúc chưa có sự cố:</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Chỉ số</th><th>Giá trị</th><th>Ý nghĩa</th></tr></thead>
+        <tbody>
+          <tr><td>traffic</td><td class="n">10</td><td>Tổng số request đã phục vụ</td></tr>
+          <tr><td>latency p50</td><td class="n">154 ms</td><td>Một nửa số request nhanh hơn mức này</td></tr>
+          <tr><td>latency p95</td><td class="n">155 ms</td><td>Rất sát p50 → hệ thống ổn định, không có đuôi chậm</td></tr>
+          <tr><td>latency p99</td><td class="n">155 ms</td><td>Không có ngoại lệ nào</td></tr>
+          <tr><td>total cost</td><td class="n">$0.0225</td><td>Tính từ token, giá $3/$15 mỗi triệu token vào/ra</td></tr>
+          <tr><td>tokens in / out</td><td class="n">330 / 1435</td><td>Trả lời dài hơn câu hỏi — bình thường</td></tr>
+          <tr><td>errors</td><td class="n">0</td><td>Không có lỗi nào</td></tr>
+          <tr><td>quality avg</td><td class="n">0.88</td><td>Điểm chất lượng ước lượng, thang 0–1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Con số <code>quality</code> là một <em>proxy</em> — thước đo gián tiếp. Hệ thống không thực sự hiểu câu trả lời hay hay dở;
+      nó chấm theo quy tắc máy móc: có tìm được tài liệu không (+0.2), câu trả lời có đủ dài không (+0.1),
+      có nhắc lại từ khóa trong câu hỏi không (+0.1), khởi điểm 0.5. Thô sơ, nhưng nếu con số này
+      <em>tụt đột ngột</em> thì đó vẫn là tín hiệu đáng điều tra.
+    </p>
+  </section>
+
+  <!-- ================= 7 ================= -->
+  <section id="prompt">
+    <h2><span class="num">Phần 07 — Truy vết</span>Trace và quản lý phiên bản prompt</h2>
+
+    <p>
+      Một <strong>trace</strong> là bản ghi có cấu trúc cây của một request: mỗi bước con là một <em>span</em>
+      với thời điểm bắt đầu và kết thúc. Vẽ ra trông như biểu đồ thác nước, và bạn nhìn phát biết ngay
+      thanh nào dài nhất — tức là bước nào ăn hết thời gian.
+    </p>
+
+    <p>
+      Ở project này, <code>LabAgent.run</code> được bọc bởi decorator <code>@observe</code>, nên mỗi lần chạy
+      tự động tạo một trace trên Langfuse kèm ID người dùng đã băm, session, và metadata về prompt.
+    </p>
+
+    <h3>Vì sao phải đánh version cho prompt</h3>
+
+    <p>
+      Prompt là code. Sửa một câu trong prompt có thể làm chất lượng câu trả lời thay đổi hẳn.
+      Nếu không ghi lại request nào dùng prompt phiên bản nào, bạn sẽ không bao giờ trả lời được câu hỏi
+      <em>"chất lượng tụt từ hôm qua — có phải do bản prompt mới không?"</em>
+    </p>
+
+    <p>Code xử lý ba trạng thái và ghi rõ ràng trạng thái nào đang xảy ra, thay vì giả vờ mọi thứ đều ổn:</p>
+
+    <dl class="defs">
+      <div>
+        <dt>prompt_source = langfuse</dt>
+        <dd>Lấy được prompt quản lý từ server. Trace ghi số phiên bản thật, ví dụ <code>version 3</code>.</dd>
+      </div>
+      <div>
+        <dt>prompt_source = local</dt>
+        <dd>Chưa cấu hình API key. App dùng template gắn trong code và nói thẳng là vậy.</dd>
+      </div>
+      <div>
+        <dt>prompt_source = local-fallback</dt>
+        <dd>Đã bật Langfuse nhưng gọi thất bại — hết thời gian chờ, sai tên prompt. Lỗi được ghi lại kèm.</dd>
+      </div>
+    </dl>
+
+    <p>
+      Đây là điểm thiết kế đáng học nhất trong repo. Hệ thống <strong>không bao giờ nói dối về nguồn gốc dữ liệu</strong>.
+      Một trace ghi <code>local-fallback</code> là bằng chứng trung thực rằng cấu hình đang có vấn đề —
+      tốt hơn nhiều so với một trace trông có vẻ bình thường nhưng thật ra dùng sai prompt.
+    </p>
+
+    <div class="note warn">
+      <span class="tag">Trạng thái hiện tại của máy bạn</span>
+      <p>
+        <code>.env</code> chưa có Langfuse key, nên <code>tracing_enabled = false</code> và mọi trace đều là
+        <code>local</code>. Log, metrics và dashboard vẫn chạy đủ — nhưng phần bằng chứng trace và prompt version
+        của bài nộp thì chưa thu thập được.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= 8 ================= -->
+  <section id="dashboard">
+    <h2><span class="num">Phần 08 — Ngưỡng</span>Dashboard, SLO và cảnh báo</h2>
+
+    <p>
+      Dashboard trả lời câu hỏi <em>"hệ thống có đang khỏe không?"</em> trong vài giây liếc mắt.
+      Bài lab quy định đúng sáu panel, mỗi panel một câu hỏi, đọc dữ liệu từ <code>data/logs.jsonl</code>.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Panel</th><th>Trả lời câu hỏi</th><th>Ngưỡng</th></tr></thead>
+        <tbody>
+          <tr><td>latency</td><td>Người dùng phải chờ bao lâu?</td><td class="n">p95 ≤ 3000ms</td></tr>
+          <tr><td>traffic</td><td>Có bao nhiêu người đang dùng?</td><td class="n">≥ 1 req/phút</td></tr>
+          <tr><td>errors</td><td>Bao nhiêu phần trăm thất bại, và lỗi loại gì?</td><td class="n">≤ 2%</td></tr>
+          <tr><td>cost</td><td>Đang tiêu bao nhiêu tiền?</td><td class="n">≤ $2.50</td></tr>
+          <tr><td>tokens</td><td>Câu hỏi và câu trả lời dài cỡ nào?</td><td class="n">≤ 50000</td></tr>
+          <tr><td>quality</td><td>Câu trả lời có đang tệ đi không?</td><td class="n">trung bình ≥ 0.75</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <strong>SLO</strong> (Service Level Objective) là lời hứa bạn tự đặt ra: <em>"p95 sẽ dưới 3 giây, 99.5% thời gian"</em>.
+      Nó biến một mong muốn mơ hồ thành con số kiểm tra được. <strong>Alert</strong> là cái chuông reo khi lời hứa
+      sắp bị phá vỡ.
+    </p>
+
+    <p>
+      Nguyên tắc quan trọng: cảnh báo phải dựa trên <em>triệu chứng mà người dùng cảm nhận được</em>, không dựa trên
+      chi tiết kỹ thuật bên trong. <em>"Độ trễ p95 vượt 3 giây trong 5 phút liên tiếp"</em> là cảnh báo tốt — nó có nghĩa
+      với mọi người. <em>"Hàm retrieve chậm"</em> là cảnh báo tồi — nó chỉ có nghĩa với người viết ra hàm đó,
+      và sẽ vô nghĩa khi code được đổi tên.
+    </p>
+  </section>
+
+  <!-- ================= 9 ================= -->
+  <section id="su-co">
+    <h2><span class="num">Phần 09 — Bài tập chính</span>Sự cố: chuyện gì xảy ra khi ta bẻ gãy hệ thống</h2>
+
+    <p>
+      Cách duy nhất để biết hệ thống quan sát của bạn có thật sự hoạt động là… phá hệ thống và xem
+      nó có phát hiện ra không. Project cho sẵn ba công tắc phá hoại.
+    </p>
+
+    <dl class="defs">
+      <div><dt>rag_slow</dt><dd>Chèn 2.5 giây chờ vào bước tìm tài liệu. Hệ thống vẫn đúng, chỉ chậm.</dd></div>
+      <div><dt>tool_fail</dt><dd>Bước tìm tài liệu ném lỗi. Request trả về HTTP 500.</dd></div>
+      <div><dt>cost_spike</dt><dd>Số token đầu ra nhân bốn. Không chậm, không lỗi — chỉ âm thầm đắt gấp bốn.</dd></div>
+    </dl>
+
+    <p>
+      Sự cố chính thức của cohort K3 nằm trong <code>config/challenge.json</code> và đã được Lab Coach mở khóa:
+      <code>rag_slow</code>, ảnh hưởng tới tính năng <code>refund</code>, ngưỡng độ trễ <code>2000ms</code>.
+    </p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 860 300" role="img"
+             aria-label="So sánh cấu tạo độ trễ trước và sau sự cố rag_slow. Bình thường tổng khoảng 150ms hoàn toàn từ bước gọi LLM. Khi rag_slow bật, bước tìm tài liệu thêm 2500ms, tổng thành khoảng 2650ms, vượt ngưỡng challenge 2000ms nhưng vẫn dưới ngưỡng SLO 3000ms.">
+          <defs>
+            <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <!-- scale: 0..3000ms maps to x 150..810 -->
+          <text class="s-sub" x="14" y="22">Cấu tạo độ trễ của một request</text>
+
+          <!-- axis -->
+          <line class="s-dash" x1="150" y1="232" x2="810" y2="232"/>
+          <text class="s-sub" x="150" y="250" text-anchor="middle">0</text>
+          <text class="s-sub" x="370" y="250" text-anchor="middle">1000ms</text>
+          <text class="s-sub" x="590" y="250" text-anchor="middle">2000ms</text>
+          <text class="s-sub" x="810" y="250" text-anchor="middle">3000ms</text>
+
+          <!-- healthy bar -->
+          <text class="s-t"   x="14" y="72">Bình thường</text>
+          <text class="s-sub" x="14" y="90">p95 đo được</text>
+          <rect class="s-ok" x="150" y="56" width="34" height="34" rx="2"/>
+          <text class="s-m" x="196" y="78">≈ 155ms — toàn bộ là bước gọi LLM</text>
+
+          <!-- incident bar -->
+          <text class="s-t"    x="14" y="150">rag_slow bật</text>
+          <text class="s-sub"  x="14" y="168">suy ra từ source</text>
+          <rect class="s-crit" x="150" y="134" width="550" height="34" rx="2"/>
+          <rect class="s-ok"   x="700" y="134" width="34"  height="34" rx="2"/>
+          <text class="s-m"    x="300" y="156" style="fill:var(--crit)">retrieve() — sleep(2.5s)</text>
+          <text class="s-m"    x="746" y="156">+ LLM 150ms</text>
+          <text class="s-critt" x="150" y="190">tổng ≈ 2650ms — chậm gấp 17 lần</text>
+
+          <!-- thresholds -->
+          <line class="s-accln" x1="590" y1="40" x2="590" y2="232" stroke-dasharray="5 4"/>
+          <text class="s-acct" x="584" y="34" text-anchor="end">ngưỡng challenge 2000ms</text>
+
+          <line class="s-line" x1="810" y1="40" x2="810" y2="232" stroke-dasharray="5 4" style="stroke:var(--ink-faint)"/>
+          <text class="s-sub" x="816" y="34" text-anchor="end">SLO 3000ms</text>
+
+          <!-- verdict -->
+          <rect class="s-sunk" x="150" y="266" width="660" height="26" rx="2"/>
+          <text class="s-m" x="164" y="284">Vượt ngưỡng challenge nhưng LỌT dưới SLO dashboard — cảnh báo p95≤3000ms sẽ KHÔNG reo</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>Hình 4</b>
+        Con số 2650ms được suy ra từ source code (<code>sleep(2.5)</code> trong <code>retrieve</code> cộng
+        <code>sleep(0.15)</code> trong <code>generate</code>, cả hai đều nằm trong vùng đo <code>latency_ms</code>),
+        chưa phải số đo thực tế. Còn 155ms là số đã đo thật.
+      </figcaption>
+    </figure>
+
+    <div class="note warn">
+      <span class="tag">Phát hiện đáng đưa vào báo cáo</span>
+      <p>
+        Sự cố này rơi vào đúng khe hở giữa hai ngưỡng: <strong>2650ms vượt ngưỡng challenge 2000ms
+        nhưng vẫn dưới SLO 3000ms trong <code>config/dashboard.yaml</code></strong>. Nghĩa là với cấu hình hiện tại,
+        cảnh báo latency sẽ im lặng trong khi người dùng đang chờ gấp 17 lần bình thường.
+        Đây là một bài học SLO thật: <em>ngưỡng đặt quá lỏng thì cảnh báo trở nên vô dụng</em>.
+        Nhóm nên hoặc siết SLO lại, hoặc giải thích được vì sao giữ nguyên.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= 10 ================= -->
+  <section id="dieu-tra">
+    <h2><span class="num">Phần 10 — Kỹ năng cuối</span>Quy trình điều tra, từng bước một</h2>
+
+    <p>Đây là bài kiểm tra thật sự của cả lab. Khi có sự cố, bạn đi theo đúng bốn bước sau:</p>
+
+    <ol>
+      <li>
+        <strong>Bắt đầu từ metrics.</strong> Mở dashboard. Panel nào vượt ngưỡng? Bắt đầu lệch từ thời điểm nào?
+        Ở đây: latency p95 nhảy từ 155ms lên khoảng 2650ms.
+        <em>Bạn mới biết có chuyện, chưa biết chuyện gì.</em>
+      </li>
+      <li>
+        <strong>Chuyển sang traces.</strong> Mở một trace chậm trong khoảng thời gian đó. So sánh độ dài các span.
+        Ở đây: span <code>retrieve</code> chiếm 2.5 trong 2.65 giây, span LLM vẫn bình thường.
+        <em>Giờ bạn biết bước nào chậm, nhưng chưa biết vì sao.</em>
+      </li>
+      <li>
+        <strong>Chuyển sang logs.</strong> Lấy correlation ID từ trace đó, lọc <code>data/logs.jsonl</code>.
+        Đọc ngữ cảnh: <code>feature</code>, <code>session_id</code>, tài liệu nào được truy vấn.
+        <em>Giờ bạn có bằng chứng cụ thể.</em>
+      </li>
+      <li>
+        <strong>Kết luận, nhưng chỉ khi cả ba tầng khớp nhau.</strong> Nếu metrics nói chậm nhưng trace không cho thấy
+        span nào chậm, giả thuyết của bạn sai — quay lại bước 1.
+      </li>
+    </ol>
+
+    <p>
+      Báo cáo cuối cùng phải nêu được ba thứ: <strong>nguyên nhân gốc</strong> (điều gì thực sự gây ra),
+      <strong>cách sửa</strong> (làm gì ngay bây giờ), và <strong>biện pháp phòng ngừa</strong>
+      (làm gì để lần sau phát hiện sớm hơn — thường chính là một cảnh báo mới hoặc một ngưỡng chặt hơn).
+    </p>
+  </section>
+
+  <!-- ================= 11 ================= -->
+  <section id="lo-trinh">
+    <h2><span class="num">Phần 11 — Lộ trình</span>Bốn giờ lab diễn ra thế nào</h2>
+
+    <ul class="timeline">
+      <li>
+        <span class="tl-time">0:00–0:30</span>
+        <div class="tl-body">
+          <h4>Dựng môi trường và đo baseline <span class="pill done">xong</span></h4>
+          <p>Cài thư viện, chạy API, bắn 10 request để sinh <code>data/logs.jsonl</code>, ghi lại số liệu lúc hệ thống còn khỏe.</p>
+          <p>Kết quả: 22/22 test pass, <code>/health</code> trả <code>ok: true</code>, 10/10 request thành công.</p>
+        </div>
+      </li>
+      <li>
+        <span class="tl-time">0:30–1:30</span>
+        <div class="tl-body">
+          <h4>Logging và PII <span class="pill done">xong</span></h4>
+          <p>Gắn correlation ID, thêm ngữ cảnh vào log, bật bộ xóa dữ liệu cá nhân.</p>
+          <p>Kết quả: <code>validate_logs.py</code> đạt <strong>100/100</strong>, không còn PII rò rỉ.</p>
+        </div>
+      </li>
+      <li>
+        <span class="tl-time">1:30–2:30</span>
+        <div class="tl-body">
+          <h4>Traces, prompt version và dashboard <span class="pill todo">còn dở</span></h4>
+          <p>Contract dashboard đã hợp lệ (<code>6/6 panel</code>), nhưng cần Langfuse key để có trace thật,
+             cần tạo prompt v1/v2, và cần dựng dashboard thật rồi chụp màn hình.</p>
+        </div>
+      </li>
+      <li>
+        <span class="tl-time">2:30–3:30</span>
+        <div class="tl-body">
+          <h4>Điều tra sự cố chính thức <span class="pill todo">chưa chạy</span></h4>
+          <p>File challenge đã mở khóa. Chạy <code>inject_incident.py</code> rồi
+             <code>load_test.py --challenge --concurrency 5</code>, sau đó lần theo Metrics → Traces → Logs.</p>
+        </div>
+      </li>
+      <li>
+        <span class="tl-time">3:30–4:00</span>
+        <div class="tl-body">
+          <h4>Báo cáo và demo <span class="pill todo">chưa làm</span></h4>
+          <p><code>submission/REPORT.md</code> còn trống, <code>submission/evidence/</code> chưa có ảnh nào,
+             <code>config/alert_rules.yaml</code> vẫn còn ba dòng <code>TODO</code>.</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ================= 12 ================= -->
+  <section id="tu-vung">
+    <h2><span class="num">Phần 12 — Tra cứu nhanh</span>Từ vựng</h2>
+
+    <dl class="defs">
+      <div><dt>Observability</dt><dd>Khả năng hiểu chuyện gì đang xảy ra bên trong hệ thống chỉ bằng cách nhìn từ bên ngoài.</dd></div>
+      <div><dt>Correlation ID</dt><dd>Mã ngẫu nhiên nối tất cả dòng log của cùng một request lại với nhau.</dd></div>
+      <div><dt>Trace / Span</dt><dd>Trace là hành trình đầy đủ của một request. Span là một chặng trong hành trình đó.</dd></div>
+      <div><dt>Structured log</dt><dd>Log dạng JSON có field rõ ràng, máy đọc và lọc được — khác với câu văn tự do.</dd></div>
+      <div><dt>PII</dt><dd>Dữ liệu định danh cá nhân: email, số điện thoại, CCCD, số thẻ. Không được ghi nguyên văn.</dd></div>
+      <div><dt>Redaction</dt><dd>Thay dữ liệu nhạy cảm bằng nhãn thay thế trước khi lưu, ví dụ <code>[REDACTED_EMAIL]</code>.</dd></div>
+      <div><dt>Percentile (p95)</dt><dd>Ngưỡng mà 95% số đo nằm dưới. Mô tả nhóm người dùng xui nhất, không phải người trung bình.</dd></div>
+      <div><dt>SLI / SLO</dt><dd>SLI là thứ bạn đo. SLO là mức bạn cam kết cho thứ đó.</dd></div>
+      <div><dt>Root cause</dt><dd>Nguyên nhân thật sự đứng sau triệu chứng, chứng minh được bằng dữ liệu.</dd></div>
+      <div><dt>Quality proxy</dt><dd>Thước đo gián tiếp, không hoàn hảo, cho một thứ khó đo trực tiếp như "câu trả lời có hay không".</dd></div>
+    </dl>
+  </section>
+
+  <!-- ================= FOOT ================= -->
+  <section id="do-tin-cay">
+    <h2><span class="num">Ghi chú</span>Độ tin cậy của từng con số trong tài liệu này</h2>
+
+    <p>Tài liệu phân biệt rõ ba mức, để bạn biết chỗ nào có thể trích thẳng vào báo cáo và chỗ nào cần tự đo lại:</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Nội dung</th><th>Mức</th><th>Căn cứ</th></tr></thead>
+        <tbody>
+          <tr><td>Baseline 155ms, $0.0225, quality 0.88, 21 dòng log</td><td><span class="pill done">đo thật</span></td><td>Chạy <code>load_test.py</code> và đọc <code>/metrics</code></td></tr>
+          <tr><td>PII đã bị xóa trong log</td><td><span class="pill done">đo thật</span></td><td>Trích trực tiếp từ <code>data/logs.jsonl</code></td></tr>
+          <tr><td>p95 với 10 mẫu trả về giá trị lớn nhất</td><td><span class="pill done">đo thật</span></td><td>Chạy thử <code>percentile()</code> với dữ liệu mẫu</td></tr>
+          <tr><td>Dict lồng nhau không bị scrub</td><td><span class="pill done">đo thật</span></td><td>Chạy thử <code>scrub_event()</code> với payload lồng</td></tr>
+          <tr><td>rag_slow → khoảng 2650ms</td><td><span class="pill na">suy từ code</span></td><td>2.5s + 0.15s, cả hai là <code>sleep</code> cố định trong vùng đo — chưa chạy thật</td></tr>
+          <tr><td>Khe hở giữa ngưỡng 2000ms và SLO 3000ms</td><td><span class="pill na">suy từ code</span></td><td>Đối chiếu <code>challenge.json</code> với <code>dashboard.yaml</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="foot">
+      Day 13 — Observability cho hệ thống AI · Cohort K3 · Nhóm B61<br>
+      Tài liệu sinh ra từ việc đọc source và chạy thử trực tiếp trên repo, không phải từ mô tả chung chung.<br>
+      Số đo lấy từ lần chạy baseline 10 request lúc chưa bật sự cố nào.
+    </p>
+  </section>
+
+</div>

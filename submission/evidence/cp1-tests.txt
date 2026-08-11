@@ -1,0 +1,13 @@
+# CP1 - Regression tests
+# Lenh: python -m pytest -q
+# Ngay: 2026-08-11T03:40:45Z
+
+28 passed, 2 warnings in 2.63s
+
+--- Test moi bo sung cho CP1: tests/test_correlation_and_enrichment.py ---
+tests/test_correlation_and_enrichment.py::test_generated_correlation_id_is_returned_in_headers PASSED [ 16%]
+tests/test_correlation_and_enrichment.py::test_client_supplied_correlation_id_is_preserved PASSED [ 33%]
+tests/test_correlation_and_enrichment.py::test_api_logs_carry_enrichment_metadata PASSED [ 50%]
+tests/test_correlation_and_enrichment.py::test_contextvars_do_not_leak_between_requests PASSED [ 66%]
+tests/test_correlation_and_enrichment.py::test_scrub_processor_redacts_pii_not_passed_through_summarize PASSED [ 83%]
+tests/test_correlation_and_enrichment.py::test_chat_request_with_pii_never_logs_raw_values PASSED [100%]

@@ -1,0 +1,118 @@
+# CP2 - Cau truc trace sau khi instrument theo skill langfuse
+# Ngay: 2026-08-11T04:06:30Z
+# SDK: langfuse==3.2.1 (repo pin san; test_tracing_adapter.py assert v3 API)
+#
+# LUU Y: key Langfuse tra 401 nen KHONG the fetch trace tu Langfuse de audit.
+# Thay vao do span duoc bat truc tiep o tang OpenTelemetry (InMemorySpanExporter),
+# tuc la doc dung nhung gi SDK se gui di. Xem tests/test_tracing_structure.py.
+
+
+======================================================================
+SCENARIO: normal   |   spans captured: 4
+======================================================================
+├─ chat-response  [span]  1113ms
+│    trace.name = chat-response
+│    trace.input = "What is the refund policy? Email [REDACTED_EMAIL] phone [REDACTED_PHONE_VN] card [REDACTED_CREDIT_CARD]"
+│    trace.output = "Starter answer. Teams should improve this output logic and add better quality checks. Use retrieved context and keep responses concise."
+│    trace.tags = ('lab', 'qa', 'claude-sonnet-4-5')
+│    correlation_id (meta) = req-audit01
+│    doc_count (meta) = 1
+│    latency_ms (meta) = 1112
+│    prompt_label (meta) = production
+│    prompt_name (meta) = day13-chat
+│    prompt_source (meta) = local-fallback
+│    prompt_version (meta) = local-v1
+  ├─ retrieve-context  [span]  0ms
+  │    observation.input = "What is the refund policy? Email [REDACTED_EMAIL] phone [REDACTED_PHONE_VN] card..."
+  │    observation.output = {"doc_count": 1, "docs": ["Refunds are available within 7 days with proof of purchase."]}
+  │    observation_type (meta) = retriever
+  ├─ resolve-prompt  [span]  956ms
+  │    observation.output = {"prompt_name": "day13-chat", "prompt_label": "production", "prompt_version": "local-v1", "prompt_source": "local-fallback"}
+  │    observation.level = WARNING
+  │    observation.status_message = LangfuseFallback
+  │    observation_type (meta) = prompt-management
+  ├─ llm-generate  [generation]  154ms
+  │    observation.input = "Feature=qa Docs=Refunds are available within 7 days with proof of purchase. Question=What is the refund policy? Email [REDACTED_EMAIL] phone [REDACTE…
+  │    observation.output = "Starter answer. Teams should improve this output logic and add better quality checks. Use retrieved context and keep responses concise."
+  │    observation.model.name = claude-sonnet-4-5
+  │    observation.usage_details = {"prompt_tokens": 45, "completion_tokens": 123}
+  │    observation.cost_details = {"total": 0.00198}
+  │    doc_count (meta) = 1
+  │    prompt_fetch_error (meta) = LangfuseFallback
+  │    prompt_label (meta) = production
+  │    prompt_name (meta) = day13-chat
+  │    prompt_source (meta) = local-fallback
+  │    prompt_version (meta) = local-v1
+  │    query_preview (meta) = What is the refund policy? Email [REDACTED_EMAIL] phone [REDACTED_PHONE_VN] card...
+
+--- PII check trong TOAN BO attribute cua span ---
+  OK   -> khong co stu***@vinuni.edu.vn
+  OK   -> khong co 098*****21
+  OK   -> khong co 4111 **** **** 1111
+  OK   -> khong co u_audit
+
+
+======================================================================
+SCENARIO: rag_slow   |   spans captured: 4
+======================================================================
+├─ chat-response  [span]  3722ms
+│    trace.name = chat-response
+│    trace.input = "What is the refund policy? Email [REDACTED_EMAIL] phone [REDACTED_PHONE_VN] card [REDACTED_CREDIT_CARD]"
+│    trace.output = "Starter answer. Teams should improve this output logic and add better quality checks. Use retrieved context and keep responses concise."
+│    trace.tags = ('lab', 'qa', 'claude-sonnet-4-5')
+│    correlation_id (meta) = req-audit01
+│    doc_count (meta) = 1
+│    latency_ms (meta) = 3721
+│    prompt_label (meta) = production
+│    prompt_name (meta) = day13-chat
+│    prompt_source (meta) = local-fallback
+│    prompt_version (meta) = local-v1
+  ├─ retrieve-context  [span]  2502ms
+  │    observation.input = "What is the refund policy? Email [REDACTED_EMAIL] phone [REDACTED_PHONE_VN] card..."
+  │    observation.output = {"doc_count": 1, "docs": ["Refunds are available within 7 days with proof of purchase."]}
+  │    observation_type (meta) = retriever
+  ├─ resolve-prompt  [span]  1060ms
+  │    observation.output = {"prompt_name": "day13-chat", "prompt_label": "production", "prompt_version": "local-v1", "prompt_source": "local-fallback"}
+  │    observation.level = WARNING
+  │    observation.status_message = LangfuseFallback
+  │    observation_type (meta) = prompt-management
+  ├─ llm-generate  [generation]  156ms
+  │    observation.input = "Feature=qa Docs=Refunds are available within 7 days with proof of purchase. Question=What is the refund policy? Email [REDACTED_EMAIL] phone [REDACTE…
+  │    observation.output = "Starter answer. Teams should improve this output logic and add better quality checks. Use retrieved context and keep responses concise."
+  │    observation.model.name = claude-sonnet-4-5
+  │    observation.usage_details = {"prompt_tokens": 45, "completion_tokens": 83}
+  │    observation.cost_details = {"total": 0.00138}
+  │    doc_count (meta) = 1
+  │    prompt_fetch_error (meta) = LangfuseFallback
+  │    prompt_label (meta) = production
+  │    prompt_name (meta) = day13-chat
+  │    prompt_source (meta) = local-fallback
+  │    prompt_version (meta) = local-v1
+  │    query_preview (meta) = What is the refund policy? Email [REDACTED_EMAIL] phone [REDACTED_PHONE_VN] card...
+
+--- PII check trong TOAN BO attribute cua span ---
+  OK   -> khong co stu***@vinuni.edu.vn
+  OK   -> khong co 098*****21
+  OK   -> khong co 4111 **** **** 1111
+  OK   -> khong co u_audit
+
+(agent raised RuntimeError: Vector store timeout)
+
+======================================================================
+SCENARIO: tool_fail   |   spans captured: 2
+======================================================================
+├─ chat-response  [span]  5ms
+│    observation.level = ERROR
+│    observation.status_message = Vector store timeout
+  ├─ retrieve-context  [span]  4ms
+  │    observation.input = "What is the refund policy? Email [REDACTED_EMAIL] phone [REDACTED_PHONE_VN] card..."
+  │    observation.level = ERROR
+  │    observation.status_message = RuntimeError: Vector store timeout
+  │    observation_type (meta) = retriever
+
+--- PII check trong TOAN BO attribute cua span ---
+  OK   -> khong co stu***@vinuni.edu.vn
+  OK   -> khong co 098*****21
+  OK   -> khong co 4111 **** **** 1111
+  OK   -> khong co u_audit
+

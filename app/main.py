@@ -13,6 +13,8 @@ from .metrics import record_error, snapshot
 from .middleware import CorrelationIdMiddleware
 from .pii import hash_user_id, summarize_text
 from .schemas import ChatRequest, ChatResponse
+from .tracing import configure_tracing, masking_active
+from .tracing import flush as flush_traces
 from .tracing import tracing_enabled
 
 configure_logging()
@@ -24,12 +26,24 @@ agent = LabAgent()
 
 @app.on_event("startup")
 async def startup() -> None:
+    # Phải chạy trước request đầu tiên, nếu không @observe sẽ tạo client thiếu mask.
+    configure_tracing()
     log.info(
         "app_started",
         service=os.getenv("APP_NAME", "day13-observability-lab"),
         env=os.getenv("APP_ENV", "dev"),
-        payload={"tracing_enabled": tracing_enabled()},
+        payload={
+            "tracing_enabled": tracing_enabled(),
+            "trace_masking_active": masking_active(),
+        },
     )
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    # Không flush thì span còn trong buffer sẽ mất khi tiến trình thoát.
+    flush_traces()
+    log.info("app_stopped", service=os.getenv("APP_NAME", "day13-observability-lab"))
 
 
 @app.get("/health")
@@ -63,6 +77,7 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             feature=body.feature,
             session_id=body.session_id,
             message=body.message,
+            correlation_id=request.state.correlation_id,
         )
         log.info(
             "response_sent",

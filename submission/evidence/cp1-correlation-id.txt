@@ -1,0 +1,25 @@
+# CP1 - Correlation ID
+# 1) Server tu sinh correlation ID dang req-<8 hex> va tra ve o header x-request-id
+# 2) Neu client gui san x-request-id thi server GIU NGUYEN (propagation)
+# 3) Moi log record cua service=api deu mang dung correlation_id do
+
+--- Request co x-request-id: req-trace-demo-001 ---
+Response headers:
+  x-request-id: req-trace-demo-001
+  x-response-time-ms: 154.1
+
+--- 2 log record cung correlation_id (request_received + response_sent) ---
+{"service": "api", "payload": {"message_preview": "Contact me at [REDACTED_EMAIL] or [REDACTED_PHONE_VN], card [REDACTED_CREDIT_CAR..."}, "event": "request_received", "session_id": "s_demo", "user_id_hash": "58335a0a668e", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-trace-demo-001", "level": "info", "ts": "2026-08-11T03:38:50.759794Z"}
+{"service": "api", "latency_ms": 151, "tokens_in": 48, "tokens_out": 153, "cost_usd": 0.002439, "quality_score": 0.8, "payload": {"answer_preview": "Starter answer. Teams should improve this output logic and add better quality ch..."}, "event": "response_sent", "session_id": "s_demo", "user_id_hash": "58335a0a668e", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-trace-demo-001", "level": "info", "ts": "2026-08-11T03:38:50.912830Z"}
+
+--- Correlation ID sinh tu load test (10 request = 10 ID khac nhau) ---
+"correlation_id": "req-0d43b28d"
+"correlation_id": "req-2f344ecb"
+"correlation_id": "req-2fac470b"
+"correlation_id": "req-6d6ae65c"
+"correlation_id": "req-8b22dc2b"
+"correlation_id": "req-a0359740"
+"correlation_id": "req-b8fa0527"
+"correlation_id": "req-e2b199ba"
+"correlation_id": "req-f2743578"
+"correlation_id": "req-f3f2763f"
