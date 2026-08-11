@@ -19,6 +19,9 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         request.state.correlation_id = correlation_id
 
         start = time.perf_counter()
+        # Handler đọc mốc này để đo trọn thời gian request nằm trong server, gồm cả
+        # thời gian chờ hàng đợi. Bấm giờ bên trong agent sẽ bỏ sót phần chờ đó.
+        request.state.started = start
         response = await call_next(request)
         elapsed_ms = (time.perf_counter() - start) * 1000
 

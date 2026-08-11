@@ -1,9 +1,9 @@
 # Evidence — Prompt versioning và rollback (Checkpoint 2)
 
-Toàn bộ số liệu dưới đây đã được fetch lại từ Langfuse bằng `langfuse-cli` để xác minh,
+Toàn bộ trace ID dưới đây đã được fetch lại từ Langfuse API để xác minh tồn tại,
 không phải chép tay.
 
-- Project: Langfuse Cloud region JP (`https://jp.cloud.langfuse.com`)
+- Project: **Langfuse Cloud region EU** (`https://cloud.langfuse.com`), project `My Project`
 - Prompt name: `day13-chat`
 - Input dùng chung cho mọi lần chạy: `"What is your refund policy?"`
 
@@ -17,9 +17,8 @@ python scripts/prompt_versions.py rollback --version 1  # bước 6
 ```
 
 **Không chạy lại `setup`** — prompt trên Langfuse là immutable nên mỗi lần chạy `setup`
-sẽ đẻ thêm version mới (v3, v4...) thay vì sửa v1/v2 đang có. Vì project đã có sẵn v1,
-label `baseline` được gắn thẳng vào v1 bằng `update_prompt` và chỉ tạo thêm đúng một v2,
-để không sinh version thừa.
+sẽ đẻ thêm version mới (v3, v4...) thay vì sửa v1/v2 đang có. Project đã có sẵn v1 nên
+label `baseline` được gắn thẳng vào v1 bằng `update_prompt`, và chỉ tạo thêm đúng một v2.
 
 ## Hai version
 
@@ -30,19 +29,19 @@ label `baseline` được gắn thẳng vào v1 bằng `update_prompt` và chỉ
 
 ## Chuỗi trace chứng minh
 
-Tất cả 4 trace đã được xác minh tồn tại bằng `npx langfuse-cli api traces get <id>`.
-
 | # | Thao tác | Trace ID | prompt_label | prompt_version | prompt_source |
 |---|---|---|---|---|---|
-| 1 | Chạy với label `baseline` | `d383d92f39a27f7f3ce274fa78976f73` | baseline | 1 | langfuse |
-| 2 | Chạy với label `candidate` | `22c9281a410b9ab1fb4d43d0c4f60aa0` | candidate | 2 | langfuse |
-| 3 | Promote `production` sang v2, chạy lại | `cb924f04ecffbc155d531b1c051ac363` | production | 2 | langfuse |
-| 4 | Rollback `production` về v1, chạy lại | `129ab7dc2f4a6e074a3b49163ae9f70d` | production | 1 | langfuse |
+| 1 | Chạy với label `baseline` | `e64429b9e75c96589eb46b19593d892b` | baseline | 1 | langfuse |
+| 2 | Chạy với label `candidate` | `c6d5d976287b950014e2a0be78e138e9` | candidate | 2 | langfuse |
+| 3 | Promote `production` sang v2, chạy lại | `2bfdc4034338370a5134e58a8164f4c7` | production | 2 | langfuse |
+| 4 | Rollback `production` về v1, chạy lại | `6e538ee2fec4dbc8e1be06d3dcc2bf7c` | production | 1 | langfuse |
+
+Mở trực tiếp: `https://cloud.langfuse.com/project/cmso2x37a03i3ad0jjy09f5pm/traces/<trace_id>`
 
 ## Con trỏ label trước/sau (output thật của `prompt_versions.py list`)
 
 ```
-sau setup            promote --version 2      rollback --version 1
+ban đầu              promote --version 2      rollback --version 1
 production  -> v1    production  -> v2        production  -> v1
 baseline    -> v1    baseline    -> v1        baseline    -> v1
 candidate   -> v2    candidate   -> v2        candidate   -> v2
@@ -70,11 +69,23 @@ management: đưa việc đổi prompt ra khỏi vòng đời release của code
 `prompt_source=langfuse` ở cả 4 trace xác nhận prompt được fetch thật từ Langfuse chứ
 không phải template local fallback (nếu fetch hỏng, giá trị sẽ là `local-fallback`).
 
-## Ghi chú về phiên bản trước của file này
+## Ghi chú về các phiên bản trước của file này
 
-Bản trước của file này khai 4 trace ID khác (`4ccc605b…`, `6eca60ce…`, `12fda507…`,
-`8abcc3eb…`) và nói v2 mang label `candidate`+`latest`. Kiểm tra lại bằng
-`langfuse-cli` thì cả 4 ID đều trả `not found within authorized project`, và prompt
-chỉ có v1. Nhiều khả năng chúng thuộc một project/key Langfuse khác (key đã bị thay
-hai lần trong buổi lab). Toàn bộ số liệu đã được chạy lại và thay bằng dữ liệu
-kiểm chứng được trên project hiện tại.
+Trong buổi lab, key Langfuse bị đổi vài lần và nhóm có lúc dùng region JP, có lúc EU.
+Hệ quả là hai bản trước của file này khai trace ID thuộc **project khác** với project
+đang cấu hình trong `.env`, nên tra bằng API đều trả `not found within authorized project`:
+
+- Bản 1 khai `4ccc605b…`, `6eca60ce…`, `12fda507…`, `8abcc3eb…` (project EU cũ, key đã bị thay).
+- Bản 2 khai `d383d92f…`, `22c9281a…`, `cb924f04…`, `129ab7dc…` (project JP).
+
+Nhóm đã **chốt dùng region EU**, và toàn bộ số liệu trong file này được chạy lại từ đầu
+trên project đang cấu hình. Cả 4 trace ID ở bảng trên đều đã fetch được qua API.
+
+## Ảnh cần chụp bổ sung
+
+Trace ID là bằng chứng kiểm chứng được, nhưng lab còn yêu cầu ảnh giao diện:
+
+- [ ] `prompt-versions-list.png` — danh sách 2 version kèm label trên tab Prompts
+- [ ] `prompt-trace-baseline.png` — trace #1, metadata hiện `prompt_version: 1`
+- [ ] `prompt-trace-candidate.png` — trace #2, metadata hiện `prompt_version: 2`
+- [ ] `prompt-rollback.png` — nhãn `production` trước/sau khi đổi

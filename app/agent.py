@@ -3,7 +3,6 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
-from . import metrics
 from .mock_llm import FakeLLM
 from .mock_rag import retrieve
 from .pii import hash_user_id, summarize_text
@@ -120,14 +119,8 @@ class LabAgent:
             },
         )
 
-        metrics.record_request(
-            latency_ms=latency_ms,
-            cost_usd=cost_usd,
-            tokens_in=response.usage.input_tokens,
-            tokens_out=response.usage.output_tokens,
-            quality_score=quality_score,
-        )
-
+        # Metrics của request do main.py ghi, vì chỉ ở đó mới biết tổng thời gian
+        # người dùng chờ (gồm cả xếp hàng). Agent chỉ báo cáo thời gian của chính nó.
         return AgentResult(
             answer=response.text,
             latency_ms=latency_ms,

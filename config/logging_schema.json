@@ -14,6 +14,7 @@
     "feature": {"type": ["string", "null"]},
     "model": {"type": ["string", "null"]},
     "latency_ms": {"type": ["integer", "null"]},
+    "agent_latency_ms": {"type": ["integer", "null"]},
     "tokens_in": {"type": ["integer", "null"]},
     "tokens_out": {"type": ["integer", "null"]},
     "cost_usd": {"type": ["number", "null"]},

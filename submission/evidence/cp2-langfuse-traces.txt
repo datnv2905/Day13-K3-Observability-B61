@@ -1,42 +1,28 @@
-# CP2 - Trace THAT tren Langfuse (da fetch ve de audit)
-# Ngay: 2026-08-11T04:14:48Z
-# Host: https://jp.cloud.langfuse.com (region Nhat Ban)
-# Lenh: npx langfuse-cli api traces list / traces get <id>
+# CP2 - Danh sach traces tren Langfuse
+# Project: region EU (https://cloud.langfuse.com) - 'My Project'
+# URL: https://cloud.langfuse.com/project/cmso2x37a03i3ad0jjy09f5pm/traces
+# Ngay: 2026-08-11T12:46:15+0700 (GMT+7)
 
-## Danh sach trace
-Tong so trace lay ve: 10
-  a8172631a09046a86898cd45091fb0f3 | chat-response | session=s10 | user_hash=105a9cef3903 | 4 obs
-  922e771578daf7302bb2fe579af07ad5 | chat-response | session=s09 | user_hash=4d14d5d4f719 | 4 obs
-  502b3354f3a44e36df18d48196ee3d61 | chat-response | session=s08 | user_hash=2f015d970c0b | 4 obs
-  095a9a615e3228fc29b4a6ca32178e73 | chat-response | session=s07 | user_hash=1632c29ecdec | 4 obs
-  cb2504f9170e9d8774475b508e65ee0e | chat-response | session=s06 | user_hash=4c4f62330d76 | 4 obs
-  efb2d6fb12487f59c0db85dcd70d52a9 | chat-response | session=s05 | user_hash=64f6ec689229 | 4 obs
-  29935a12c06ea0a34d6789242e642ac5 | chat-response | session=s04 | user_hash=75af07890985 | 4 obs
-  135c10fb175d2bb2a80d42f10893b60b | chat-response | session=s03 | user_hash=97ce842ec69d | 4 obs
-  2062a036dc571ccdd5d44f79af32aaa3 | chat-response | session=s02 | user_hash=95b6504a8bd6 | 4 obs
-  02151ae29612d89b75c32771ed9737e1 | chat-response | session=s01 | user_hash=2055254ee30a | 4 obs
+Yeu cau toi thieu 10 traces co metadata. Lay ve 12 trace gan nhat:
 
-## Chi tiet 1 trace (request co so the tin dung)
-trace id   = 922e771578daf7302bb2fe579af07ad5
-  name        = chat-response
-  sessionId   = s09
-  userId      = 4d14d5d4f719
-  tags        = ['claude-sonnet-4-5', 'lab', 'qa']
-  environment = dev
-  input       = What is the policy for PII and credit card [REDACTED_CREDIT_CARD]?
-  output      = Starter answer. Teams should improve this output logic and add better quality checks. Use retrieved context and keep responses concise.
-  metadata    = {"correlation_id": "req-487e5b1a", "doc_count": 1, "latency_ms": 156, "prompt_name": "day13-chat", "prompt_label": "production", "prompt_version": 1, "prompt_source": "langfuse"}
+#   trace_id                           ten              session                prompt     thoi diem
+----------------------------------------------------------------------------------------------------------------------
+1   5dcbeda3ea358aeeb4ca186e179b6dce   chat-response    s10                    v1/production 12:45:02
+2   ba5170228be0ed17493c26d79da0bc3e   chat-response    s09                    v1/production 12:45:01
+3   b64db30c84c7c5b8751658d83c9e6df3   chat-response    s08                    v1/production 12:45:01
+4   4493ca966789754af01f29818041c23a   chat-response    s07                    v1/production 12:45:01
+5   a4aee1df52d6a49436cea2994fde3623   chat-response    s06                    v1/production 12:45:01
+6   f2f9390e6ce8c9eda3a16daea72b87d7   chat-response    s05                    v1/production 12:45:01
+7   5d33e537a6acbbb8b2b9bc9c22d93824   chat-response    s04                    v1/production 12:45:01
+8   796e9790c444ecb3c4dfc83906cdca90   chat-response    s03                    v1/production 12:45:00
+9   f3e2ddd0f7917e044b387fee2885fbda   chat-response    s02                    v1/production 12:45:00
+10  e876010cb79c1bebed772f000a02dc27   chat-response    s01                    v1/production 12:44:59
+11  6e538ee2fec4dbc8e1be06d3dcc2bf7c   chat-response    evi-after-rollback     v1/production 12:38:33
+12  2bfdc4034338370a5134e58a8164f4c7   chat-response    evi-after-promote      v2/production 12:38:06
 
-  observations:
-    - llm-generate       type=GENERATION  level=DEFAULT model=claude-sonnet-4-5 usage={'prompt_tokens': 36, 'completion_tokens': 165, 'total': 201} cost={'total': 0.002583}
-    - resolve-prompt     type=SPAN        level=DEFAULT
-    - retrieve-context   type=SPAN        level=DEFAULT
-    - chat-response      type=SPAN        level=DEFAULT
+Moi trace mang: user_id da hash, session_id, tags [lab, feature, model],
+correlation_id (cau noi sang log), prompt_name/label/version/source,
+usage_details (token) va cost_details (USD).
 
-  score: quality_proxy = 0.9  (heuristic quality proxy, docs=1)
-
-  PII check tren du lieu that tu Langfuse:
-    OK   -> khong co stu***@vinuni.edu.vn
-    OK   -> khong co 098*****21
-    OK   -> khong co 4111 **** **** 1111
-    OK   -> khong co u09 (user_id tho)
+Input/output cua nguoi dung KHONG duoc gui len Langfuse - chi gui ban rut gon
+da qua scrub_text, nen PII khong roi khoi may.

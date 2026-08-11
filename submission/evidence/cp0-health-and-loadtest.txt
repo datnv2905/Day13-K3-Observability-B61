@@ -1,25 +1,29 @@
 # CP0 - API health + load test
-# Ngay: 2026-08-11T03:40:30Z
+# Langfuse: region EU (https://cloud.langfuse.com), project 'My Project'
+# Ngay: 2026-08-11T12:45:18+0700 (GMT+7)
 
 $ curl -i http://127.0.0.1:8000/health
 HTTP/1.1 200 OK
-date: Tue, 11 Aug 2026 03:40:29 GMT
+date: Tue, 11 Aug 2026 05:44:59 GMT
 server: uvicorn
-content-length: 103
+content-length: 102
 content-type: application/json
-x-request-id: req-75c5d22e
-x-response-time-ms: 1.4
+x-request-id: req-0bc2d8f0
+x-response-time-ms: 0.3
 
-{"ok":true,"tracing_enabled":false,"incidents":{"rag_slow":false,"tool_fail":false,"cost_spike":false}}
+{"ok":true,"tracing_enabled":true,"incidents":{"rag_slow":false,"tool_fail":false,"cost_spike":false}}
 
 $ python scripts/load_test.py
-[200] req-2fac470b | qa | 226.0ms
-[200] req-a0359740 | qa | 163.0ms
-[200] req-0d43b28d | summary | 155.7ms
-[200] req-6d6ae65c | qa | 157.9ms
-[200] req-e2b199ba | qa | 158.8ms
-[200] req-f2743578 | summary | 158.1ms
-[200] req-f3f2763f | qa | 158.2ms
-[200] req-8b22dc2b | qa | 158.4ms
-[200] req-b8fa0527 | qa | 160.0ms
-[200] req-2f344ecb | qa | 157.7ms
+[200] req-a291cf66 | qa | 1070.0ms
+[200] req-177bafad | qa | 158.6ms
+[200] req-6bbb3ea2 | summary | 156.9ms
+[200] req-9ab0f1a3 | qa | 156.8ms
+[200] req-4a384154 | qa | 156.6ms
+[200] req-dd4fea79 | summary | 158.8ms
+[200] req-0c3e50b8 | qa | 156.5ms
+[200] req-a6600eca | qa | 156.7ms
+[200] req-1a086cbd | qa | 161.0ms
+[200] req-6bbd7a6d | qa | 156.5ms
+
+Ghi chu: request dau tien ~1070ms vi phai fetch prompt tu Langfuse (cache 60s),
+cac request sau ~155ms. Day la ly do dashboard theo doi percentile chu khong theo doi average.

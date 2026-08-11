@@ -1,59 +1,75 @@
 # CP3 - Dieu tra challenge chinh thuc
-# Challenge ID: day13-k3-observability-v1 (cohort K3, seed 1303, latency_threshold_ms=2000)
-# Ngay: 2026-08-11T04:29:33Z
-# Quy trinh: chay input challenge 2 lan (khoe / sau khi bat incident) de so sanh cung dieu kien.
+# Challenge: day13-k3-observability-v1 | cohort K3 | feature refund
+# Nguong latency cua de bai: 2000 ms
+# Ngay: 2026-08-11T12:48:43+0700 (GMT+7)
 
-## BUOC 1 - METRICS: phat hien trieu chung
-Chi so                     Baseline     Incident     Thay doi
----------------------- ------------ ------------ ------------
-latency_p50 (ms)                155         2661        x17.2
-latency_p95 (ms)                598         3095         x5.2
-avg_cost_usd                 0.0024       0.0021   khong tang
-quality_avg                    0.86         0.86    khong doi
-error_breakdown                  {}           {}    khong loi
+$ python scripts/inject_incident.py
+$ python scripts/load_test.py --challenge --concurrency 5
+Challenge: day13-k3-observability-v1 | Cohort: K3
+[200] req-3c3a2268 | refund | 10627.4ms
+[200] req-645c5fac | refund | 13287.1ms
+[200] req-dc7d2c11 | refund | 13289.3ms
+[200] req-463e8e2a | refund | 13288.7ms
+[200] req-0cb24820 | refund | 13287.7ms
 
-  p50 = 2661ms -> vuot nguong 2000ms 1.33x ; p95 = 3095ms -> vuot 1.55x
+==============================================================================
+LOP 1 - METRICS: co van de gi
+==============================================================================
+p50 = 154 ms
+p95 = 13274 ms   <-- vuot nguong de bai 2000 ms (= SLO latency_p95_ms)
+p99 = 13274 ms
+error_rate = {}  (khong co loi - he thong CHAM chu khong HONG)
 
-Suy luan loai tru:
-  - cost khong tang  -> KHONG phai cost_spike
-  - khong co error   -> KHONG phai tool_fail
-  - chi latency tang -> mot buoc trong pipeline bi cham
+Rieng 5 request feature=refund: p95 = 13274 ms
+Nhung agent_latency_ms cua chung chi p95 = 2652 ms
+-> phan chenh lech la thoi gian xep hang, khong phai thoi gian xu ly.
 
-## BUOC 2 - TRACES: khoanh vung span bat thuong
-  [KHOE] trace_id=f255cdd9257e710056a9c0132cb1f022  session=k3-challenge-s01  correlation_id=req-66b7064d
-      chat-response      SPAN             153ms
-      llm-generate       GENERATION       151ms
-      resolve-prompt     SPAN               1ms
-      retrieve-context   SPAN               0ms
+Metrics noi CO van de, nhung khong noi van de O DAU.
 
-  [INCIDENT] trace_id=087f20a81491a6d4f74df066f543d493  session=k3-challenge-s02  correlation_id=req-9cddeabb
-      chat-response      SPAN            3097ms
-      retrieve-context   SPAN            2506ms
-      resolve-prompt     SPAN             434ms
-      llm-generate       GENERATION       155ms
+==============================================================================
+LOP 2 - TRACES: van de o dau
+==============================================================================
+Trace: https://cloud.langfuse.com/project/cmso2x37a03i3ad0jjy09f5pm/traces/84d5b5e7fa15d136366bad1e57c51f71
+session_id = k3-challenge-s01   correlation_id = req-dc7d2c11
 
-  => retrieve-context: 0ms (khoe) -> 2506ms (incident). Chenh ~2.5s.
-     llm-generate     : 151ms -> 155ms (gan nhu khong doi) => KHONG phai loi model.
+span                 kieu          thoi gian   % trace
+--------------------------------------------------------
+retrieve-context     SPAN             2.501s     94.2%
+chat-response        SPAN             2.654s    100.0%
+resolve-prompt       SPAN             0.001s      0.0%
+llm-generate         GENERATION       0.151s      5.7%
 
-## BUOC 3 - LOGS: chung minh root cause
-Loc log theo correlation_id lay tu trace incident (req-9cddeabb):
+retrieve-context chiem 94.2% trace, llm-generate chi 5.7%.
+-> Thu pham la buoc retrieval, KHONG phai LLM.
 
-  {"ts": "2026-08-11T04:28:17.057296Z", "level": "info", "event": "request_received", "correlation_id": "req-9cddeabb", "feature": "refund", "session_id": "k3-challenge-s02"}
-  {"ts": "2026-08-11T04:28:20.154787Z", "level": "info", "event": "response_sent", "correlation_id": "req-9cddeabb", "feature": "refund", "session_id": "k3-challenge-s02", "latency_ms": 3095}
+==============================================================================
+LOP 3 - LOGS: tai sao
+==============================================================================
+Loc log theo dung correlation_id lay tu trace metadata: req-dc7d2c11
 
-Su kien bat incident:
-  {"service": "control", "payload": {"name": "rag_slow"}, "event": "incident_enabled", "correlation_id": "req-fca47938", "level": "warning", "ts": "2026-08-11T04:28:16.879295Z"}
+{"ts": "2026-08-11T12:47:23.393007+07:00", "event": "request_received", "correlation_id": "req-dc7d2c11", "session_id": "k3-challenge-s01", "feature": "refund"}
+{"ts": "2026-08-11T12:47:26.047427+07:00", "event": "response_sent", "correlation_id": "req-dc7d2c11", "session_id": "k3-challenge-s01", "feature": "refund", "latency_ms": 7965, "agent_latency_ms": 2652}
 
-Phan bo latency 10 request feature=refund (cung input challenge):
-   [152, 154, 155, 156, 598, 2657, 2657, 2661, 2661, 3095]
-   -> hai cum tach bach, chenh ~2.5s, dung 5 request truoc / 5 sau khi bat incident.
+==============================================================================
+KET LUAN
+==============================================================================
+Root cause:
+  Vector store tra ve cham ~2.5 giay o app/mock_rag.py::retrieve (incident rag_slow).
+  Bang chung: span retrieve-context chiem 94.2% trace 84d5b5e7fa15d136366bad1e57c51f71,
+  va log cung correlation_id req-dc7d2c11 xac nhan cung request do.
 
-## ROOT CAUSE
-  app/mock_rag.py :: retrieve()
-      if STATE["rag_slow"]: time.sleep(2.5)
-  Buoc RAG retrieval bi chen do tre co dinh 2.5s truoc khi tra document.
+Yeu to lam nang them:
+  time.sleep() chay trong 'async def chat' nen chan ca event loop; request khong
+  chay song song ma noi duoi nhau. Do la ly do latency_ms len toi 13 giay trong khi
+  agent_latency_ms chi 2.65 giay - phan chenh la hang doi.
 
-## GHI CHU CHAT LUONG TRACE
-  Lan chay dau, trace co 6 observation vi mock_rag/mock_llm cung mang @observe,
-  sinh span trung (retrieve + retrieve-context, llm_generate + llm-generate).
-  Da go 2 decorator do; trace hien con dung 4 observation.
+Fix action:
+  1. Tat nguon gay cham: python scripts/inject_incident.py --scenario rag_slow --disable
+  2. Voi he that: dat timeout cho vector store va co duong fallback khi no cham.
+
+Preventive measure:
+  1. Alert chat_latency_p95_slo_breach (config/alert_rules.yaml) keu khi p95 > 2000ms
+     keo dai 10 phut, kem runbook docs/alerts.md#alert-1 dung 3 buoc vua lam.
+  2. SLI latency do tu moc middleware chu khong tu trong agent, nen khong bi mu
+     voi tac nghen - khoa bang tests/test_latency_sli.py.
+  3. Chuyen agent.run sang run_in_threadpool de mot request cham khong keo ca he thong.

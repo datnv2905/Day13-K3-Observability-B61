@@ -10,9 +10,9 @@
 ## 2. Kết quả kỹ thuật
 
 - Điểm `validate_logs.py`: **100/100** (baseline 30/100) — [`evidence/cp1-final-validate-logs.txt`](evidence/cp1-final-validate-logs.txt)
-- Tổng số traces: **10** trên Langfuse, mỗi trace 4 observation — [`evidence/cp2-langfuse-traces.txt`](evidence/cp2-langfuse-traces.txt)
-- Số PII leak còn lại: **0** (`Potential PII leaks detected: 0` trên 23 log record)
-- Link/đường dẫn dashboard: [`evidence/dashboard.html`](evidence/dashboard.html) — `validate_dashboard.py` báo `HỢP LỆ: 6/6 panel`
+- Tổng số traces: **12** trên Langfuse (vượt yêu cầu 10), mỗi trace 4 observation — [`evidence/cp2-langfuse-traces.txt`](evidence/cp2-langfuse-traces.txt)
+- Số PII leak còn lại: **0** (`Potential PII leaks detected: 0` trên 21 log record)
+- Link/đường dẫn dashboard: [`evidence/dashboard-baseline.html`](evidence/dashboard-baseline.html) — `validate_dashboard.py` báo `HỢP LỆ: 6/6 panel`
 
 ### Checkpoint 0 — baseline
 
@@ -22,15 +22,15 @@ git worktree riêng, nên con số so sánh là thật chứ không phải ướ
 | Hạng mục | Baseline (`611a0d2`) | Sau CP1 (HEAD) |
 |---|---|---|
 | Basic JSON schema | FAILED — 20/21 record thiếu field bắt buộc | PASSED — 0 record thiếu |
-| Correlation ID propagation | FAILED — 0 ID duy nhất | PASSED — 11 ID duy nhất |
+| Correlation ID propagation | FAILED — 0 ID duy nhất | PASSED — 10 ID duy nhất |
 | Log enrichment | FAILED — 20 record thiếu context | PASSED — 0 record thiếu |
 | PII scrubbing | PASSED | PASSED |
 | **Điểm ước lượng** | **30/100** | **100/100** |
 
 - Evidence baseline: [`evidence/cp0-baseline-validate-logs.txt`](evidence/cp0-baseline-validate-logs.txt)
 - Evidence health + load test: [`evidence/cp0-health-and-loadtest.txt`](evidence/cp0-health-and-loadtest.txt)
-- `/health` trả `{"ok": true, "tracing_enabled": false, ...}`. `tracing_enabled=false` vì
-  `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` trong `.env` còn rỗng; sẽ cấu hình ở Checkpoint 2.
+- `/health` trả `{"ok": true, "tracing_enabled": true, ...}` sau khi cấu hình key Langfuse
+  region EU ở Checkpoint 2. Evidence CP0 được chụp lại sau khi hoàn tất cấu hình.
 
 Lưu ý trung thực: hạng mục PII đã PASSED ngay ở baseline. Lý do là `app/main.py` gọi
 `summarize_text()` tại chỗ log, mà hàm này vốn đã chạy `scrub_text()`. Processor `scrub_event`
@@ -41,7 +41,7 @@ bị vô hiệu ở baseline nên **chưa có lớp chặn cuối** — bất k�
 
 - Evidence correlation ID: [`evidence/cp1-correlation-id.txt`](evidence/cp1-correlation-id.txt)
 - Evidence PII redaction: [`evidence/cp1-pii-redaction.txt`](evidence/cp1-pii-redaction.txt)
-- Evidence regression tests: [`evidence/cp1-tests.txt`](evidence/cp1-tests.txt) — 28 passed
+- Evidence regression tests: [`evidence/cp1-tests.txt`](evidence/cp1-tests.txt) — 43 passed
 - Evidence trace waterfall: [`evidence/cp2-trace-structure.txt`](evidence/cp2-trace-structure.txt)
 - Giải thích một span đáng chú ý: xem mục 3.4
 
@@ -148,19 +148,34 @@ khỏi phá test đã có. Giải pháp tạm: ghi `observation_type` vào metad
 
 ### 3.5 Đã audit trace thật trên Langfuse
 
-Evidence: [`evidence/cp2-langfuse-traces.txt`](evidence/cp2-langfuse-traces.txt)
+Evidence: [`evidence/cp2-langfuse-traces.txt`](evidence/cp2-langfuse-traces.txt) ·
+[`evidence/cp2-trace-structure.txt`](evidence/cp2-trace-structure.txt)
+
+Ảnh giao diện Langfuse:
+
+- [Danh sách traces](evidence/langfuse-traces-list.png) — cột Input hiển thị
+  `[REDACTED_...]`, xác nhận PII không rời khỏi máy kể cả khi trace lên cloud.
+- [Trace waterfall](evidence/trace-waterfall-incident.png) — 4 span lồng nhau,
+  `retrieve-context` 2.50s trên tổng 2.65s.
+- [Metadata của trace](evidence/trace-metadata-correlation.png) — `correlation_id`,
+  `prompt_name/label/version/source`, `doc_count`.
 
 **Sự cố cấu hình đã xử lý.** Ban đầu Langfuse trả 401 liên tục. Nguyên nhân không
-phải key sai mà là **sai region**: key thuộc `https://jp.cloud.langfuse.com`
+phải key sai mà là **sai region**: cặp key đang thử thuộc `https://jp.cloud.langfuse.com`
 (Langfuse Cloud Nhật Bản) trong khi `.env` trỏ `https://cloud.langfuse.com` (EU).
 `.env` còn có dòng `LANGFUSE_BASE_URL="https://jp.cloud.langfuse.com"tô` bị dính ký
-tự thừa khiến `python-dotenv` không parse được, và key bị bọc dấu nháy. Đã sửa
-`LANGFUSE_HOST` về region JP, bỏ dòng hỏng và bỏ dấu nháy → `auth_check()` trả `True`.
+tự thừa khiến `python-dotenv` không parse được, và key bị bọc dấu nháy.
 
 Bài học: thông điệp *"Invalid credentials"* của Langfuse **không phân biệt** key sai
 với host sai. Cách tách bạch là thử cùng một cặp key với từng region.
 
-Kết quả audit trace `922e771578daf7302bb2fe579af07ad5` (fetch bằng `langfuse-cli`):
+**Chốt cuối cùng: nhóm dùng region EU** (`https://cloud.langfuse.com`, project
+`My Project`). Trong buổi lab key bị đổi vài lần nên có giai đoạn trace nằm ở project
+JP; toàn bộ evidence đã được **chạy lại từ đầu trên project EU** để mọi trace ID trong
+báo cáo này đều mở được bằng đúng key trong `.env`. Trace ID thuộc project cũ đã bị
+loại bỏ khỏi báo cáo.
+
+Kết quả audit trace `5dcbeda3ea358aeeb4ca186e179b6dce` (fetch bằng Langfuse API):
 
 | Tiêu chí best practice | Kết quả trên Langfuse |
 |---|---|
@@ -192,6 +207,13 @@ fetch timeout vì 401) và không còn lỗi `Failed to export span batch`.
 
 Evidence: [`evidence/prompt-versioning.md`](evidence/prompt-versioning.md)
 
+Ảnh giao diện Langfuse:
+
+- [Danh sách 2 version](evidence/prompt-versions-list.png) — v1 mang `production`+`baseline`,
+  v2 mang `candidate`+`latest`.
+- [Trace chạy label `baseline`](evidence/prompt-trace-baseline.png) — metadata `prompt_version: 1`.
+- [Trace chạy label `candidate`](evidence/prompt-trace-candidate.png) — metadata `prompt_version: 2`.
+
 - **Prompt name:** `day13-chat` (Langfuse Cloud region JP)
 - **Version/label baseline:** v1 — labels `baseline`, `production`. Template gốc 3 biến
   `feature`, `docs`, `message`.
@@ -201,10 +223,10 @@ Evidence: [`evidence/prompt-versioning.md`](evidence/prompt-versioning.md)
 
 | # | Thao tác | Trace ID | prompt_label | prompt_version | prompt_source |
 |---|---|---|---|---|---|
-| 1 | Chạy với label `baseline` | `d383d92f39a27f7f3ce274fa78976f73` | baseline | 1 | langfuse |
-| 2 | Chạy với label `candidate` | `22c9281a410b9ab1fb4d43d0c4f60aa0` | candidate | 2 | langfuse |
-| 3 | Promote `production` → v2, chạy lại | `cb924f04ecffbc155d531b1c051ac363` | production | 2 | langfuse |
-| 4 | Rollback `production` → v1, chạy lại | `129ab7dc2f4a6e074a3b49163ae9f70d` | production | 1 | langfuse |
+| 1 | Chạy với label `baseline` | `e64429b9e75c96589eb46b19593d892b` | baseline | 1 | langfuse |
+| 2 | Chạy với label `candidate` | `c6d5d976287b950014e2a0be78e138e9` | candidate | 2 | langfuse |
+| 3 | Promote `production` → v2, chạy lại | `2bfdc4034338370a5134e58a8164f4c7` | production | 2 | langfuse |
+| 4 | Rollback `production` → v1, chạy lại | `6e538ee2fec4dbc8e1be06d3dcc2bf7c` | production | 1 | langfuse |
 
 - **Bằng chứng đổi label / rollback:** bước 3 → 4 dùng **cùng label `production`** và
   **cùng input**, nhưng `prompt_version` đổi từ 2 về 1 — không sửa code, không deploy lại,
@@ -235,9 +257,13 @@ thêm version mới. Vì project đã có sẵn v1, label `baseline` được g�
 
 ## 5. Dashboard, SLO và alerts
 
-- **Kết quả `validate_dashboard.py`:** `HỢP LỆ: 6/6 panel có trong dashboard contract.`
-- **Evidence dashboard:** [`evidence/dashboard.html`](evidence/dashboard.html),
-  [`evidence/dashboard-baseline.png`](evidence/dashboard-baseline.png); contract ở
+- **Kết quả `validate_dashboard.py`:** `HỢP LỆ: 6/6 panel có trong dashboard contract.` —
+  [`evidence/cp2-validate-dashboard.txt`](evidence/cp2-validate-dashboard.txt) (kèm cả
+  `validate_alerts.py`: 4 alert rule, ngưỡng khớp SLO và dashboard)
+- **Evidence dashboard:** [`evidence/dashboard-baseline.html`](evidence/dashboard-baseline.html),
+  [`evidence/dashboard-baseline.png`](evidence/dashboard-baseline.png),
+  [`evidence/dashboard-incident.html`](evidence/dashboard-incident.html),
+  [`evidence/dashboard-incident.png`](evidence/dashboard-incident.png); contract ở
   [`config/dashboard.yaml`](../config/dashboard.yaml), dựng bằng `scripts/build_dashboard.py`
   từ `data/logs.jsonl`.
 
@@ -306,15 +332,27 @@ hành động khắc phục hoàn toàn khác nhau.
 
 Evidence: [`evidence/cp3-challenge-investigation.txt`](evidence/cp3-challenge-investigation.txt)
 
+Ảnh dashboard trước/sau sự cố:
+
+- [Baseline](evidence/dashboard-baseline.png) — p95 1 059 ms, 6/6 panel đạt.
+- [Khi có sự cố](evidence/dashboard-incident.png) — p95 13 274 ms, panel Latency
+  chuyển sang `✗ vi phạm`; các panel error/cost/quality vẫn đạt.
+- [Trace waterfall của chính sự cố](evidence/trace-waterfall-incident.png) và
+  [metadata chứa correlation_id](evidence/trace-metadata-correlation.png).
+
 - **Challenge ID:** `day13-k3-observability-v1` (cohort K3, seed 1303, `latency_threshold_ms=2000`)
-- **Triệu chứng từ metrics:** `latency_p50` 155ms → **2661ms (x17.2)**, `latency_p95` 598ms →
-  **3095ms (x5.2)**, vượt ngưỡng 2000ms lần lượt 1.33x và 1.55x. Quan trọng hơn là những
-  chỉ số **không** đổi: `avg_cost_usd` 0.0024→0.0021, `quality_avg` 0.86→0.86,
-  `error_breakdown` rỗng.
-- **Trace ID liên quan:** `087f20a81491a6d4f74df066f543d493` (incident, 3097ms) đối chiếu
-  với `f255cdd9257e710056a9c0132cb1f022` (khoẻ, 153ms) — cùng `feature=refund`, cùng input.
-- **Log line/correlation ID liên quan:** `req-9cddeabb` (từ trace metadata), và
-  `req-fca47938` của sự kiện `incident_enabled`.
+- **Triệu chứng từ metrics:** trên cùng cửa sổ 60 phút, `latency_p95` đi từ **1 059ms**
+  (10 request baseline) lên **13 274ms** khi chạy 5 query challenge — vượt ngưỡng 2000ms
+  **6.6 lần**. Quan trọng không kém là những chỉ số **không** đổi: `error_breakdown` rỗng,
+  `quality_avg` 0.88→0.87, `avg_cost_usd` ~0.002. Hệ thống **chậm chứ không hỏng**, nên
+  chỉ nhìn error rate sẽ không thấy gì.
+- **Trace ID liên quan:** `84d5b5e7fa15d136366bad1e57c51f71` (`session_id=k3-challenge-s01`,
+  `feature=refund`). Waterfall: `retrieve-context` 2.501s chiếm **94.2%**, `llm-generate`
+  0.151s chỉ 5.7% → thủ phạm là retrieval, không phải LLM.
+- **Log line/correlation ID liên quan:** `req-dc7d2c11` — lấy từ `metadata.correlation_id`
+  của chính trace trên, dùng để tra ngược ra cặp `request_received` / `response_sent`
+  trong `data/logs.jsonl`. Log ghi `latency_ms=13289` nhưng `agent_latency_ms=2652`:
+  phần chênh gần 10.6 giây là **thời gian xếp hàng**, không phải thời gian xử lý.
 - **Root cause:** `app/mock_rag.py :: retrieve()` — nhánh `if STATE["rag_slow"]:
   time.sleep(2.5)` chèn độ trễ cố định 2.5s vào bước RAG retrieval trước khi trả document.
 

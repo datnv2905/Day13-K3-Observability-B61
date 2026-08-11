@@ -1,0 +1,18 @@
+# CP2 - Kiem tra contract dashboard, SLO va alert
+# Ngay: 2026-08-11T12:47:06+0700 (GMT+7)
+
+$ python scripts/validate_dashboard.py
+HỢP LỆ: 6/6 panel có trong dashboard contract.
+
+$ python scripts/validate_alerts.py
+HỢP LỆ: 4 alert rule đã điền, có runbook, và ngưỡng khớp SLO + dashboard.
+
+$ python scripts/build_dashboard.py --output submission/evidence/dashboard-baseline.html
+Đã dựng 6 panel từ 21 bản ghi.
+Cửa sổ: 2026-08-11 11:45:02 → 12:45:02 GMT+7 (60 phút)
+Output: submission\evidence\dashboard-baseline.html
+
+validate_dashboard kiem cau truc contract (6 panel, don vi, threshold).
+validate_alerts kiem nguong khong lech giua slo.yaml, alert_rules.yaml va dashboard.yaml,
+va kiem runbook anchor trong docs/alerts.md co ton tai that.
+Ca hai chi kiem cau hinh - anh dashboard runtime van bat buoc.

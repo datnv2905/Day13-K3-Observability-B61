@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -9,7 +10,7 @@ from structlog.contextvars import bind_contextvars
 from .agent import LabAgent
 from .incidents import disable, enable, status
 from .logging_config import configure_logging, get_logger
-from .metrics import record_error, snapshot
+from .metrics import record_error, record_request, snapshot
 from .middleware import CorrelationIdMiddleware
 from .pii import hash_user_id, summarize_text
 from .schemas import ChatRequest, ChatResponse
@@ -79,10 +80,22 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             message=body.message,
             correlation_id=request.state.correlation_id,
         )
+        # latency_ms phải là thời gian người dùng thật sự chờ, nên đo từ mốc middleware
+        # chứ không lấy đồng hồ bên trong agent — đồng hồ đó bỏ qua thời gian xếp hàng
+        # và bị chặn trên ở mức xử lý một request, khiến SLO/alert mù với tắc nghẽn.
+        latency_ms = int((time.perf_counter() - request.state.started) * 1000)
+        record_request(
+            latency_ms=latency_ms,
+            cost_usd=result.cost_usd,
+            tokens_in=result.tokens_in,
+            tokens_out=result.tokens_out,
+            quality_score=result.quality_score,
+        )
         log.info(
             "response_sent",
             service="api",
-            latency_ms=result.latency_ms,
+            latency_ms=latency_ms,
+            agent_latency_ms=result.latency_ms,
             tokens_in=result.tokens_in,
             tokens_out=result.tokens_out,
             cost_usd=result.cost_usd,
@@ -92,7 +105,8 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
         return ChatResponse(
             answer=result.answer,
             correlation_id=request.state.correlation_id,
-            latency_ms=result.latency_ms,
+            latency_ms=latency_ms,
+            agent_latency_ms=result.latency_ms,
             tokens_in=result.tokens_in,
             tokens_out=result.tokens_out,
             cost_usd=result.cost_usd,

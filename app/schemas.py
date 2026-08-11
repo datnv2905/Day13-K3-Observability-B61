@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+from .timeutil import now_local
 
 
 class ChatRequest(BaseModel):
@@ -16,7 +18,11 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     correlation_id: str
+    # latency_ms: tổng thời gian trong server, đo từ mốc middleware — đây là thứ người
+    # dùng cảm nhận và là SLI cho SLO/alert.
+    # agent_latency_ms: riêng phần agent xử lý; hiệu hai số là thời gian xếp hàng.
     latency_ms: int
+    agent_latency_ms: int
     tokens_in: int
     tokens_out: int
     cost_usd: float
@@ -24,7 +30,7 @@ class ChatResponse(BaseModel):
 
 
 class LogRecord(BaseModel):
-    ts: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    ts: datetime = Field(default_factory=now_local)
     level: Literal["info", "warning", "error", "critical"]
     service: str
     event: str
@@ -35,6 +41,7 @@ class LogRecord(BaseModel):
     feature: str | None = None
     model: str | None = None
     latency_ms: int | None = None
+    agent_latency_ms: int | None = None
     tokens_in: int | None = None
     tokens_out: int | None = None
     cost_usd: float | None = None

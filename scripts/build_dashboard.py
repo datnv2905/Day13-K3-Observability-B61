@@ -17,7 +17,7 @@ import json
 import sys
 import webbrowser
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
@@ -28,6 +28,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from app.cli import configure_utf8_stdio
 from app.metrics import percentile
+from app.timeutil import LOCAL_TZ_LABEL, now_local, to_local
 
 DEFAULT_LOGS = REPO_ROOT / "data" / "logs.jsonl"
 DEFAULT_CONFIG = REPO_ROOT / "config" / "dashboard.yaml"
@@ -78,8 +79,9 @@ def select_window(records: list[dict], minutes: int) -> tuple[list[dict], dateti
 
 
 def minute_key(record: dict) -> str:
+    """Nhãn phút theo giờ Việt Nam, kể cả với log cũ ghi bằng UTC."""
     ts = parse_ts(record)
-    return ts.strftime("%H:%M") if ts else "??:??"
+    return to_local(ts).strftime("%H:%M") if ts else "??:??"
 
 
 def bucket_by_minute(
@@ -87,8 +89,9 @@ def bucket_by_minute(
 ) -> list[tuple[str, float]]:
     """Trục thời gian phải liên tục: phút không có traffic vẫn là một cột 0."""
     buckets: dict[str, float] = defaultdict(float)
-    cursor = start.replace(second=0, microsecond=0)
-    last = end.replace(second=0, microsecond=0)
+    # Mốc phải cùng múi giờ với minute_key, nếu không nhãn sẽ lệch 7 tiếng.
+    cursor = to_local(start).replace(second=0, microsecond=0)
+    last = to_local(end).replace(second=0, microsecond=0)
     while cursor <= last:
         buckets[cursor.strftime("%H:%M")] = 0.0
         cursor += timedelta(minutes=1)
@@ -461,7 +464,7 @@ def render_panel(panel: dict, data: dict, meta: dict) -> str:
         chip = status_chip(ok, f"{traffic['rate_per_minute']} req/phút — {verdict}")
         body = columns_over_time(traffic["buckets"], "request")
         body += table_view(
-            ["Phút (UTC)", "Số request"],
+            [f"Phút ({LOCAL_TZ_LABEL})", "Số request"],
             [[m, f"{int(v)}"] for m, v in traffic["buckets"]],
         )
 
@@ -498,7 +501,7 @@ def render_panel(panel: dict, data: dict, meta: dict) -> str:
             + columns_over_time(cost["buckets"], "USD", digits=4, color="var(--series-1)")
         )
         body += table_view(
-            ["Phút (UTC)", "Cost (USD)"],
+            [f"Phút ({LOCAL_TZ_LABEL})", "Cost (USD)"],
             [[m, f"{v:.6f}"] for m, v in cost["buckets"]],
         )
 
@@ -560,7 +563,7 @@ def render_html(config: dict, data: dict, window: tuple[datetime, datetime], sou
     except ValueError:
         source_label = source.name
     panels = "".join(render_panel(p, data, meta) for p in dashboard["panels"])
-    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    generated = f"{now_local():%Y-%m-%d %H:%M:%S} {LOCAL_TZ_LABEL}"
 
     return f"""<!doctype html>
 <html lang="vi">
@@ -576,7 +579,7 @@ def render_html(config: dict, data: dict, window: tuple[datetime, datetime], sou
   <h1>{esc(dashboard['title'])}</h1>
   <p class="meta">
     Time range: <strong>{dashboard['time_range_minutes']} phút</strong>
-    ({start.strftime('%H:%M:%S')} → {end.strftime('%H:%M:%S')} UTC) ·
+    ({to_local(start):%H:%M:%S} → {to_local(end):%H:%M:%S} {LOCAL_TZ_LABEL}) ·
     Auto refresh: <strong>{dashboard['refresh_seconds']}s</strong><br>
     Nguồn dữ liệu: <code>{esc(source_label)}</code> ·
     Contract: <code>config/dashboard.yaml</code> (schema_version {dashboard['schema_version']}) ·
@@ -615,7 +618,7 @@ def main() -> int:
     args.output.write_text(render_html(config, data, (start, end), args.logs), encoding="utf-8")
 
     print(f"Đã dựng {len(config['dashboard']['panels'])} panel từ {len(inside)} bản ghi.")
-    print(f"Cửa sổ: {start:%Y-%m-%d %H:%M:%S} → {end:%H:%M:%S} UTC ({window_minutes} phút)")
+    print(f"Cửa sổ: {to_local(start):%Y-%m-%d %H:%M:%S} → {to_local(end):%H:%M:%S} {LOCAL_TZ_LABEL} ({window_minutes} phút)")
     print(f"Output: {args.output}")
     if args.open:
         webbrowser.open(args.output.resolve().as_uri())

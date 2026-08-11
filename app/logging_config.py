@@ -9,6 +9,7 @@ import structlog
 from structlog.contextvars import merge_contextvars
 
 from .pii import scrub_text
+from .timeutil import now_local
 
 LOG_PATH = Path(os.getenv("LOG_PATH", "data/logs.jsonl"))
 
@@ -21,6 +22,16 @@ class JsonlFileProcessor:
             f.write(rendered + "\n")
         return event_dict
 
+
+
+def add_local_timestamp(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    """Ghi `ts` theo giờ Việt Nam, kèm offset +07:00 để mốc thời gian không mơ hồ.
+
+    Thay cho `structlog.processors.TimeStamper(utc=True)` vì TimeStamper chỉ chọn được
+    UTC hoặc giờ máy dạng naive, không gắn được offset cụ thể.
+    """
+    event_dict["ts"] = now_local().isoformat(timespec="microseconds")
+    return event_dict
 
 
 def _scrub_value(value: Any) -> Any:
@@ -47,7 +58,7 @@ def configure_logging() -> None:
         processors=[
             merge_contextvars,
             structlog.processors.add_log_level,
-            structlog.processors.TimeStamper(fmt="iso", utc=True, key="ts"),
+            add_local_timestamp,
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
             scrub_event,
