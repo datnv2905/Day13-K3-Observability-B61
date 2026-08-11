@@ -31,6 +31,16 @@ python scripts/validate_dashboard.py
 
 Validator kiểm tra cấu trúc contract; nó không thể chứng minh biểu đồ trong ảnh dùng đúng dữ liệu. Evidence runtime vẫn bắt buộc.
 
+## Dashboard runtime của nhóm
+
+Repo triển khai dashboard không cần dependency bổ sung ngay trong FastAPI. Sau khi chạy API, mở:
+
+```text
+http://127.0.0.1:8000/dashboard
+```
+
+Dashboard đọc `data/logs.jsonl`, lọc cửa sổ 60 phút, tự refresh mỗi 30 giây và hiển thị đúng sáu panel cùng threshold từ `config/dashboard.yaml`. Dữ liệu tổng hợp dạng JSON có tại `/dashboard/data` để kiểm tra hoặc tích hợp công cụ khác.
+
 ## Cách kiểm tra runtime
 
 1. Lưu ảnh baseline và giá trị P95/error/cost hiện tại.

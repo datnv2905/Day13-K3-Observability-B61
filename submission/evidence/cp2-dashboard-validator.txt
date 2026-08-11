@@ -1,0 +1,6 @@
+HỢP LỆ: 6/6 panel có trong dashboard contract.
+
+Runtime dashboard: http://127.0.0.1:8000/dashboard
+Source: data/logs.jsonl
+Time range: 60 minutes
+Refresh interval: 30 seconds

@@ -8,7 +8,14 @@ PII_PATTERNS: dict[str, str] = {
     "phone_vn": r"(?<!\d)(?:\+84|0)(?:[ .-]?\d){9}(?!\d)",
     "cccd": r"\b\d{12}\b",
     "credit_card": r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
-    # TODO: Add more patterns (e.g., Passport, Vietnamese address keywords)
+    # Vietnamese passport letters are uppercase. Keeping this case-sensitive
+    # avoids treating generated correlation IDs such as req-c0391357 as PII.
+    "passport": r"\b[A-Z]{1,2}\d{7}\b",
+    "address_vn": (
+        r"(?i:(?:địa\s*chỉ|dia\s*chi)\s*:\s*[^,;\n]+"
+        r"|\b(?:số|so)\s+\d+[A-Z]?(?:[ /-]\d+)?\s+[^,;\n]+"
+        r"|\b(?:đường|duong|phường|phuong|quận|quan|huyện|huyen)\s+[^,;\n]+)"
+    ),
 }
 
 

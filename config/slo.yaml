@@ -4,13 +4,16 @@ slis:
   latency_p95_ms:
     objective: 3000
     target: 99.5
-    note: Replace with your group's target
+    note: 99.5% request windows must keep P95 latency at or below 3000 ms.
   error_rate_pct:
     objective: 2
     target: 99.0
+    note: 99% of request windows must keep the error rate at or below 2%.
   daily_cost_usd:
     objective: 2.5
     target: 100.0
+    note: Daily model cost must stay at or below the lab budget of 2.5 USD.
   quality_score_avg:
     objective: 0.75
     target: 95.0
+    note: 95% of evaluation windows must keep the quality proxy at or above 0.75.
